@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevTools Mini - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#dae2fd",
+                    "inverse-primary": "#4d44e3",
+                    "on-primary-container": "#dad7ff",
+                    "primary": "#c3c0ff",
+                    "secondary": "#b7c8e1",
+                    "surface": "#0b1326",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "surface-container-high": "#222a3d",
+                    "tertiary": "#ffb695",
+                    "primary-container": "#4f46e5",
+                    "on-tertiary-container": "#ffd2be",
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-secondary": "#213145",
+                    "error": "#ffb4ab",
+                    "background": "#0b1326",
+                    "surface-container-highest": "#2d3449",
+                    "on-primary-fixed": "#0f0069",
+                    "outline": "#918fa1",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "on-tertiary": "#571f00",
+                    "on-primary": "#1d00a5",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "error-container": "#93000a",
+                    "on-error": "#690005",
+                    "surface-dim": "#0b1326",
+                    "surface-container": "#171f33",
+                    "surface-container-lowest": "#060e20",
+                    "on-surface": "#dae2fd",
+                    "on-secondary-container": "#a9bad3",
+                    "secondary-container": "#3a4a5f",
+                    "on-secondary-fixed": "#0b1c30",
+                    "on-surface-variant": "#c7c4d8",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-variant": "#2d3449",
+                    "surface-container-low": "#131b2e",
+                    "tertiary-container": "#a44100",
+                    "outline-variant": "#464555",
+                    "on-error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "surface-bright": "#31394d",
+                    "on-tertiary-fixed": "#351000",
+                    "surface-tint": "#c3c0ff",
+                    "inverse-surface": "#dae2fd",
+                    "primary-fixed": "#e2dfff",
+                    "inverse-on-surface": "#283044",
+                    "secondary-fixed": "#d3e4fe",
+                    "on-secondary-fixed-variant": "#38485d"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "xl": "40px",
+                    "gutter": "20px",
+                    "base": "4px",
+                    "md": "16px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "container-max": "1200px"
+            },
+            "fontFamily": {
+                    "h2": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "code-block": ["JetBrains Mono"],
+                    "h1": ["Inter"]
+            },
+            "fontSize": {
+                    "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "code-block": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+                    "h1": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #0b1326; color: #dae2fd; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="font-body-md text-body-md overflow-hidden flex h-screen">
+<!-- SideNavBar Anchor -->
+<aside class="hidden md:flex flex-col h-full overflow-y-auto bg-slate-900 w-64 border-r border-slate-800 font-inter text-sm font-medium">
+<div class="p-6 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined">terminal</span>
+</div>
+<div>
+<h2 class="text-lg font-black text-indigo-500 leading-none">DevTools Mini</h2>
+<span class="text-xs text-slate-400">Utility Hub</span>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-indigo-500/10 text-indigo-400 border-r-2 border-indigo-500 active:scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+                Home
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="lock">lock</span>
+                Security
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="sync_alt">sync_alt</span>
+                Encoder
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="notes">notes</span>
+                Text
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="data_object">data_object</span>
+                JSON
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="lan">lan</span>
+                Network
+            </a>
+</nav>
+<div class="p-4 mt-auto space-y-2 border-t border-slate-800">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+                Documentation
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="forum">forum</span>
+                Feedback
+            </a>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full overflow-y-auto bg-background">
+<!-- TopNavBar Anchor -->
+<header class="flex items-center justify-between px-6 py-3 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 shadow-sm font-inter antialiased">
+<div class="flex items-center gap-6">
+<div class="relative w-64">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-500 text-sm">search</span>
+<input class="w-full bg-slate-900 border-none rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-500" placeholder="Search tools..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-400 hover:bg-slate-800/50 rounded-md transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 text-slate-400 hover:bg-slate-800/50 rounded-md transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Portrait of a young male developer with clean modern lighting and soft background bokeh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQlVUs5cy2ck1x43HXvFaG2ptxDzs80Ger7CuYDbjw-r61OQrXwm9a0UBxblu9FBJsrzX96FXG2MssRCcVAkNULMUGq25kdTXQrbeOKgLp_-FZEGaISpZN2NCW6EoNmfls9Aj4zMepWJZ8XCLSdUiEuz8vuUcLBMVI9TXR9QWC4pwPz4jSBKdmmfHOoYIZVNKJ6VQtbbLTHnwSywQivWhie40-Wj6LWli7rHdtcFXvLz7n81Vvpji31q-zc13swDwu2eh_ukjSjP8"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="px-lg py-lg space-y-xl">
+<!-- Hero Section (Bento Style) -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<div class="lg:col-span-2 relative overflow-hidden rounded-xl bg-gradient-to-br from-primary-container to-indigo-900 p-lg flex flex-col justify-center min-h-[300px]">
+<div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+<img alt="Circuit" class="w-full h-full object-cover" data-alt="Futuristic cyber security circuit board pattern with glowing cyan and indigo lines on dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYNpA8RsBjrebAaAF7uI4RPizPXrL3MXe64KZWXDJFxXy8pkUkV05JNQkZlZPSU0t2hL3IT-KcaAQ6H8GJtOpVQpXuLFwAUwFAlagdSr-3SsyHb-Hkj06eRxqdQChn5BvGdtqLJpQzQKlF2AdTi26tsSzt7dXn1RXZeTKo3moK0mUf_3YkN9TbqBnnSPlt8NpGQe2Vup1iUZUgKpEhBzqX_1lp8MFOBTHD5z03Z8GgOuml5srxP_rQceCClolUsbMBG5HgwO_KCEA"/>
+</div>
+<div class="relative z-10 space-y-md">
+<h1 class="font-h1 text-h1 text-white max-w-xl">All-in-one Developer Utility Hub</h1>
+<p class="text-on-primary-container text-lg max-w-md">Privacy-first, runs entirely in your browser. Your data never leaves your machine.</p>
+<div class="flex gap-md pt-md">
+<button class="px-md py-sm bg-white text-indigo-900 rounded-lg font-bold hover:bg-slate-100 transition-all active:scale-95">
+                                Explore All Tools
+                            </button>
+<button class="px-md py-sm bg-indigo-500/20 text-white border border-white/20 rounded-lg font-bold backdrop-blur-sm hover:bg-white/10 transition-all active:scale-95">
+                                GitHub Repo
+                            </button>
+</div>
+</div>
+</div>
+<div class="rounded-xl bg-surface-container border border-slate-800 p-lg flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-sm mb-md text-tertiary">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+<span class="font-label-caps text-label-caps uppercase">System Status</span>
+</div>
+<h3 class="text-h2 font-h2 text-white">v1.0.0 Stable</h3>
+<p class="text-body-sm text-slate-400 mt-sm">Environment: Local Client<br/>Processing: Web Workers enabled<br/>Latency: 0ms (Offline-ready)</p>
+</div>
+<div class="mt-xl">
+<div class="w-full bg-slate-950 rounded-lg p-md border border-slate-800">
+<code class="font-code-block text-code-block text-indigo-400">$ npm install devtools-mini</code>
+</div>
+</div>
+</div>
+</section>
+<!-- Recently Used -->
+<section class="space-y-lg">
+<div class="flex items-center justify-between">
+<h2 class="font-h2 text-h2 text-white">Recently Used</h2>
+<button class="text-sm text-indigo-400 hover:underline">Clear History</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+<!-- Recent Card 1 -->
+<div class="bg-surface-container-low border border-slate-800 p-lg rounded-xl hover:border-indigo-500/50 transition-all group">
+<div class="flex items-start justify-between mb-md">
+<div class="p-sm bg-secondary-container rounded-lg text-secondary">
+<span class="material-symbols-outlined" data-icon="data_object">data_object</span>
+</div>
+<span class="text-xs text-slate-500">2 minutes ago</span>
+</div>
+<h3 class="text-lg font-bold text-white mb-xs">JSON Formatter</h3>
+<p class="text-body-sm text-slate-400 mb-lg">Prettify, minify and validate complex JSON structures.</p>
+<button class="w-full py-2 bg-slate-800 text-slate-100 rounded-lg group-hover:bg-primary-container group-hover:text-on-primary-container transition-all flex items-center justify-center gap-2">
+                            Open Tool <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<!-- Recent Card 2 -->
+<div class="bg-surface-container-low border border-slate-800 p-lg rounded-xl hover:border-indigo-500/50 transition-all group">
+<div class="flex items-start justify-between mb-md">
+<div class="p-sm bg-tertiary-container rounded-lg text-tertiary">
+<span class="material-symbols-outlined" data-icon="lock">lock</span>
+</div>
+<span class="text-xs text-slate-500">1 hour ago</span>
+</div>
+<h3 class="text-lg font-bold text-white mb-xs">JWT Decoder</h3>
+<p class="text-body-sm text-slate-400 mb-lg">Decode and inspect JWT header, payload and signature.</p>
+<button class="w-full py-2 bg-slate-800 text-slate-100 rounded-lg group-hover:bg-primary-container group-hover:text-on-primary-container transition-all flex items-center justify-center gap-2">
+                            Open Tool <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- All Tools Grid -->
+<section class="space-y-lg">
+<div class="flex items-center gap-md">
+<h2 class="font-h2 text-h2 text-white">All Tools</h2>
+<div class="flex gap-sm">
+<span class="px-sm py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs border border-indigo-500/20">All</span>
+<span class="px-sm py-1 bg-slate-800 text-slate-400 rounded-full text-xs hover:text-white cursor-pointer">Security</span>
+<span class="px-sm py-1 bg-slate-800 text-slate-400 rounded-full text-xs hover:text-white cursor-pointer">Encoder</span>
+<span class="px-sm py-1 bg-slate-800 text-slate-400 rounded-full text-xs hover:text-white cursor-pointer">Formatter</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-lg">
+<!-- Tool Card: TOTP -->
+<div class="bg-surface-container border border-slate-800 p-md rounded-xl hover:border-primary transition-all group flex flex-col h-full">
+<div class="flex items-center gap-md mb-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="shield_lock">shield_lock</span>
+</div>
+<div>
+<h4 class="font-bold text-white">TOTP Generator</h4>
+<div class="flex gap-xs mt-1">
+<span class="text-[10px] uppercase tracking-wider font-bold text-indigo-400">Security</span>
+</div>
+</div>
+</div>
+<p class="text-body-sm text-slate-400 flex-1 mb-lg">Generate 2FA codes for testing authentication flows.</p>
+<a href="./2fa.html" class="w-full py-2 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 font-medium" title="TOTP">
+                            Open
+                        </a>
+</div>
+<!-- Tool Card: Base64 -->
+<div class="bg-surface-container border border-slate-800 p-md rounded-xl hover:border-primary transition-all group flex flex-col h-full">
+<div class="flex items-center gap-md mb-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="sync_alt">sync_alt</span>
+</div>
+<div>
+<h4 class="font-bold text-white">Base64 Encoder</h4>
+<div class="flex gap-xs mt-1">
+<span class="text-[10px] uppercase tracking-wider font-bold text-indigo-400">Encoder</span>
+</div>
+</div>
+</div>
+<p class="text-body-sm text-slate-400 flex-1 mb-lg">Convert text or files to Base64 and back instantly.</p>
+<button class="w-full py-2 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 font-medium">
+                            Open
+                        </button>
+</div>
+<!-- Tool Card: URL Encoder -->
+<div class="bg-surface-container border border-slate-800 p-md rounded-xl hover:border-primary transition-all group flex flex-col h-full">
+<div class="flex items-center gap-md mb-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="link">link</span>
+</div>
+<div>
+<h4 class="font-bold text-white">URL Encoder</h4>
+<div class="flex gap-xs mt-1">
+<span class="text-[10px] uppercase tracking-wider font-bold text-indigo-400">Web</span>
+</div>
+</div>
+</div>
+<p class="text-body-sm text-slate-400 flex-1 mb-lg">Encode or decode strings for safe URL usage.</p>
+<button class="w-full py-2 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 font-medium">
+                            Open
+                        </button>
+</div>
+<!-- Tool Card: JWT Decoder -->
+<div class="bg-surface-container border border-slate-800 p-md rounded-xl hover:border-primary transition-all group flex flex-col h-full">
+<div class="flex items-center gap-md mb-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+</div>
+<div>
+<h4 class="font-bold text-white">JWT Decoder</h4>
+<div class="flex gap-xs mt-1">
+<span class="text-[10px] uppercase tracking-wider font-bold text-indigo-400">Security</span>
+</div>
+</div>
+</div>
+<p class="text-body-sm text-slate-400 flex-1 mb-lg">Decode JWT payloads without sending data to servers.</p>
+<button class="w-full py-2 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 font-medium">
+                            Open
+                        </button>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Anchor -->
+<footer class="mt-auto bg-slate-950 border-t border-slate-800 py-8 px-8 font-inter text-xs">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-lg">
+<div class="flex items-center gap-md text-slate-400">
+<span class="font-bold">DevTools Mini</span>
+<span class="h-4 w-px bg-slate-800"></span>
+<span class="text-slate-500">All tools run locally in your browser.</span>
+</div>
+<div class="flex items-center gap-xl text-slate-500">
+<a class="hover:text-slate-300 transition-opacity duration-200 underline decoration-indigo-500/50" href="#">GitHub</a>
+<a class="hover:text-slate-300 transition-opacity duration-200 underline decoration-indigo-500/50" href="#">Privacy</a>
+<span class="text-indigo-400/70">v1.0.0</span>
+<span class="text-slate-500">© 2024 DevTools Mini. Privacy First.</span>
+</div>
+</div>
+</footer>
+</main>
+</body></html>
