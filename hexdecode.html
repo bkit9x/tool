@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Decode HTML Entity tiếng Việt</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            padding: 12px;
+            box-sizing: border-box;
+            font-family: Consolas, monospace;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Decode HTML Entity → Tiếng Việt</h2>
+
+<label for="input">Chuỗi bị mã hóa:</label>
+
+<textarea id="input" placeholder="Ví dụ:
+Ch&#7885;n / b&#7887; t&#7845;t c&#7843; k&#7871;t qu&#7843; t&#236;m ki&#7871;m' : 'Ch&#7885;n / b&#7887; t&#7845;t c&#7843; nh&#243;m"></textarea>
+
+<button onclick="decodeText()">Chuyển đổi</button>
+<button onclick="copyResult()">Copy kết quả</button>
+
+<label for="output">Kết quả:</label>
+
+<textarea id="output" readonly></textarea>
+
+<script>
+    function decodeHtmlEntities(text) {
+        const textarea = document.createElement("textarea");
+        textarea.innerHTML = text;
+        return textarea.value;
+    }
+
+    function decodeText() {
+        const input = document.getElementById("input").value;
+        const output = decodeHtmlEntities(input);
+
+        document.getElementById("output").value = output;
+    }
+
+    async function copyResult() {
+        const output = document.getElementById("output").value;
+
+        await navigator.clipboard.writeText(output);
+
+        alert("Đã copy kết quả!");
+    }
+
+    // Tự động decode ngay khi nhập/dán
+    document.getElementById("input").addEventListener("input", decodeText);
+</script>
+
+</body>
+</html>
