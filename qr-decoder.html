@@ -18,6 +18,7 @@
       <div class="action-row"><button id="copyButton" class="button" type="button" disabled>Sao chép nội dung</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
     </section>
   </main>
+  <script src="vendor/jsqr.js"></script>
   <script src="tool-shell.js"></script>
   <script>
     const fileInput = document.getElementById('fileInput');
@@ -35,12 +36,12 @@
       detector = null;
     }
 
-    if (detector) status.textContent = 'Sẵn sàng. Ảnh được xử lý trực tiếp trong trình duyệt.';
-    else status.textContent = 'Trình duyệt này chưa hỗ trợ quét QR. Hãy dùng Chrome hoặc Edge phiên bản mới.';
+    if (detector || typeof jsQR === 'function') status.textContent = 'Sẵn sàng. Ảnh được xử lý trực tiếp trong trình duyệt.';
+    else status.textContent = 'Không tải được trình quét QR cục bộ.';
 
     async function decodeImage(file) {
       if (!file || !file.type.startsWith('image/')) { status.textContent = 'Vui lòng chọn một tệp ảnh.'; return; }
-      if (!detector) return;
+      if (!detector && typeof jsQR !== 'function') return;
       result.value = '';
       copyButton.disabled = true;
       try {
@@ -51,7 +52,7 @@
         context.drawImage(bitmap, 0, 0);
         bitmap.close();
         status.textContent = 'Đang quét QR...';
-        const codes = await detector.detect(canvas);
+        const codes = detector ? await detector.detect(canvas) : (() => { const code = jsQR(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height); return code ? [{ rawValue: code.data }] : []; })();
         if (!codes.length) { status.textContent = 'Không tìm thấy QR code trong ảnh này.'; return; }
         result.value = codes.map(code => code.rawValue).join('\n\n');
         copyButton.disabled = false;
@@ -75,7 +76,7 @@
     function clearAll() {
       canvas.width = 0; canvas.height = 0;
       fileInput.value = ''; result.value = ''; copyButton.disabled = true;
-      status.textContent = detector ? 'Sẵn sàng quét ảnh QR mới.' : 'Trình duyệt này chưa hỗ trợ quét QR.';
+      status.textContent = detector || typeof jsQR === 'function' ? 'Sẵn sàng quét ảnh QR mới.' : 'Không tải được trình quét QR cục bộ.';
     }
 
     dropZone.addEventListener('click', () => fileInput.click());

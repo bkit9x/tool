@@ -88,5 +88,59 @@
     "category": "Dữ liệu",
     "icon": "phone",
     "keywords": ["phone", "telephone", "mobile", "viettel", "vinaphone", "mobifone", "số điện thoại", "nhà mạng"]
+  },
+  {
+    "id": "data-workbench",
+    "name": "Data Workbench",
+    "description": "JSON formatter, validator, diff và chuyển đổi CSV, XML, YAML.",
+    "path": "data-workbench.html",
+    "category": "Dữ liệu",
+    "icon": "data",
+    "keywords": ["json", "csv", "xml", "yaml", "format", "minify", "diff"]
+  },
+  {
+    "id": "security-generator",
+    "name": "Security Generator",
+    "description": "JWT decoder, UUID, hash SHA và password generator.",
+    "path": "security-generator.html",
+    "category": "Bảo mật",
+    "icon": "security",
+    "keywords": ["jwt", "uuid", "hash", "sha256", "password"]
+  },
+  {
+    "id": "time-web-workbench",
+    "name": "Time & Web Workbench",
+    "description": "Unix timestamp, cron, URL parser và code formatter cơ bản.",
+    "path": "time-web-workbench.html",
+    "category": "Chuyển đổi",
+    "icon": "time",
+    "keywords": ["timestamp", "date", "cron", "url", "formatter", "html", "css", "javascript"]
+  },
+  {
+    "id": "media-color-lab",
+    "name": "Media & Color Lab",
+    "description": "QR generator, chuyển đổi ảnh và đổi mã màu HEX/RGB/HSL.",
+    "path": "media-color-lab.html",
+    "category": "Hình ảnh",
+    "icon": "media",
+    "keywords": ["qr generator", "image", "compress", "webp", "color", "hex", "rgb", "hsl"]
+  },
+  {
+    "id": "text-review",
+    "name": "Text Review",
+    "description": "So sánh văn bản và xem trước Markdown sang HTML.",
+    "path": "text-review.html",
+    "category": "Văn bản",
+    "icon": "diff",
+    "keywords": ["diff", "compare", "markdown", "html", "preview"]
+  },
+  {
+    "id": "data-generator",
+    "name": "Data Generator",
+    "description": "Tạo fake data, SQL INSERT và checksum SHA-256 cho file.",
+    "path": "data-generator.html",
+    "category": "Dữ liệu",
+    "icon": "generate",
+    "keywords": ["fake data", "sql", "insert", "checksum", "sha256", "file"]
   }
 ]
