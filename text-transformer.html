@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .transform-group { margin-top: 22px; }
+    .transform-group h2 { margin: 0 0 9px; color: var(--muted); font-family: Consolas, monospace; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    .transform-group .action-row { margin-top: 0; }
+    .transform-group .button { padding: 8px 11px; }
+    .editor { min-height: 270px; }
+    .text-stats { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; color: var(--muted); font-size: .84rem; }
+    .text-stats strong { color: var(--mint); font-family: Consolas, monospace; font-size: .98rem; }
+  </style>
+</head>
+<body data-tool-name="Text Transformer" data-tool-category="Văn bản" data-tool-description="Chuyển kiểu chữ, làm sạch ký tự và xử lý từng dòng văn bản.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <label class="field-label" for="editor">Văn bản</label>
+      <textarea id="editor" class="editor" placeholder="Nhập hoặc dán văn bản vào đây..."></textarea>
+      <div class="text-stats" aria-live="polite"><span><strong id="wordCount">0</strong> từ</span><span><strong id="characterCount">0</strong> ký tự</span><span><strong id="lineCount">0</strong> dòng</span></div>
+      <p id="status" class="status" role="status">Bôi đen một phần văn bản để chỉ áp dụng thao tác cho phần đó.</p>
+
+      <section class="transform-group" aria-labelledby="case-title"><h2 id="case-title">Kiểu chữ</h2><div class="action-row">
+        <button class="button" type="button" data-action="upper">IN HOA</button><button class="button button-secondary" type="button" data-action="lower">in thường</button><button class="button button-secondary" type="button" data-action="title">Viết hoa từng từ</button><button class="button button-secondary" type="button" data-action="sentence">Viết hoa đầu câu</button><button class="button button-secondary" type="button" data-action="toggle">Đảo hoa/thường</button>
+      </div></section>
+
+      <section class="transform-group" aria-labelledby="clean-title"><h2 id="clean-title">Làm sạch</h2><div class="action-row">
+        <button class="button button-secondary" type="button" data-action="normalize-space">Chuẩn hóa khoảng trắng</button><button class="button button-secondary" type="button" data-action="trim-lines">Xóa khoảng trắng đầu/cuối dòng</button><button class="button button-secondary" type="button" data-action="remove-empty-lines">Xóa dòng trống</button><button class="button button-secondary" type="button" data-action="remove-special">Xóa ký tự đặc biệt</button><button class="button button-secondary" type="button" data-action="remove-hidden">Xóa ký tự ẩn/lạ</button><button class="button button-secondary" type="button" data-action="remove-accents">Bỏ dấu tiếng Việt</button>
+      </div></section>
+
+      <section class="transform-group" aria-labelledby="line-title"><h2 id="line-title">Theo dòng</h2><div class="action-row">
+        <button class="button button-secondary" type="button" data-action="dedupe-lines">Xóa dòng trùng</button><button class="button button-secondary" type="button" data-action="sort-lines">Sắp xếp A-Z</button><button class="button button-secondary" type="button" data-action="reverse-lines">Đảo thứ tự dòng</button>
+      </div></section>
+
+      <div class="action-row"><button id="copyButton" class="button" type="button">Sao chép</button><button id="undoButton" class="button button-secondary" type="button" disabled>Hoàn tác</button><button id="clearButton" class="button button-secondary" type="button">Xóa tất cả</button></div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const editor = document.getElementById('editor');
+    const wordCount = document.getElementById('wordCount');
+    const characterCount = document.getElementById('characterCount');
+    const lineCount = document.getElementById('lineCount');
+    const status = document.getElementById('status');
+    const undoButton = document.getElementById('undoButton');
+    const history = [];
+
+    function capitalizeWord(word) {
+      const characters = Array.from(word);
+      return characters.length ? characters[0].toLocaleUpperCase('vi') + characters.slice(1).join('') : word;
+    }
+
+    function titleCase(value) {
+      return value.toLocaleLowerCase('vi').replace(/\p{L}[\p{L}\p{M}]*/gu, capitalizeWord);
+    }
+
+    const transforms = {
+      upper: value => value.toLocaleUpperCase('vi'),
+      lower: value => value.toLocaleLowerCase('vi'),
+      title: titleCase,
+      sentence: value => value.toLocaleLowerCase('vi').replace(/(^|[.!?]\s+|\n\s*)(\p{L})/gu, (match, prefix, letter) => prefix + letter.toLocaleUpperCase('vi')),
+      toggle: value => Array.from(value).map(character => character === character.toLocaleLowerCase('vi') ? character.toLocaleUpperCase('vi') : character.toLocaleLowerCase('vi')).join(''),
+      'normalize-space': value => value.replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').trim(),
+      'trim-lines': value => value.split('\n').map(line => line.trim()).join('\n'),
+      'remove-empty-lines': value => value.split('\n').filter(line => line.trim()).join('\n'),
+      'remove-special': value => value.replace(/[^\p{L}\p{N}\s]/gu, ''),
+      'remove-hidden': value => value.normalize('NFC').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00AD\u180E\u200B-\u200D\u2060\uFEFF]/g, ''),
+      'remove-accents': value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC').replace(/đ/g, 'd').replace(/Đ/g, 'D'),
+      'dedupe-lines': value => [...new Set(value.split('\n'))].join('\n'),
+      'sort-lines': value => value.split('\n').sort((left, right) => left.localeCompare(right, 'vi')).join('\n'),
+      'reverse-lines': value => value.split('\n').reverse().join('\n')
+    };
+
+    function updateStats() {
+      const value = editor.value;
+      wordCount.textContent = value.trim() ? value.trim().split(/\s+/u).length : 0;
+      characterCount.textContent = Array.from(value).length;
+      lineCount.textContent = value ? value.split(/\r\n|\r|\n/).length : 0;
+    }
+
+    function saveHistory() {
+      history.push(editor.value);
+      if (history.length > 30) history.shift();
+      undoButton.disabled = false;
+    }
+
+    function applyTransform(action) {
+      const transform = transforms[action];
+      if (!transform || !editor.value) return;
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const selected = start !== end;
+      const source = selected ? editor.value.slice(start, end) : editor.value;
+      const result = transform(source);
+      if (result === source) return;
+      saveHistory();
+      if (selected) {
+        editor.setRangeText(result, start, end, 'select');
+      } else {
+        editor.value = result;
+        editor.setSelectionRange(0, result.length);
+      }
+      updateStats();
+      status.textContent = selected ? 'Đã áp dụng cho phần văn bản được chọn.' : 'Đã áp dụng cho toàn bộ văn bản.';
+      editor.focus();
+    }
+
+    async function copyText() {
+      if (!editor.value) return;
+      try {
+        await navigator.clipboard.writeText(editor.value);
+        status.textContent = 'Đã sao chép văn bản.';
+      } catch {
+        editor.focus(); editor.select();
+        status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.';
+      }
+    }
+
+    function undo() {
+      if (!history.length) return;
+      editor.value = history.pop();
+      undoButton.disabled = history.length === 0;
+      updateStats(); editor.focus();
+      status.textContent = 'Đã hoàn tác thao tác gần nhất.';
+    }
+
+    function clearAll() {
+      if (!editor.value) return;
+      saveHistory(); editor.value = ''; updateStats(); editor.focus();
+      status.textContent = 'Đã xóa nội dung.';
+    }
+
+    document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => applyTransform(button.dataset.action)));
+    editor.addEventListener('input', updateStats);
+    document.getElementById('copyButton').addEventListener('click', copyText);
+    undoButton.addEventListener('click', undo);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+    updateStats();
+  </script>
+</body>
+</html>

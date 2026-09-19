@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+</head>
+<body data-tool-name="QR Code Decoder" data-tool-category="Hình ảnh" data-tool-description="Đọc nội dung QR code từ ảnh tải lên, kéo thả hoặc dán từ clipboard.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <input id="fileInput" type="file" accept="image/*" hidden>
+      <div id="dropZone" class="drop-zone" role="button" tabindex="0"><div><strong>Chọn, kéo thả hoặc dán ảnh QR</strong><br><small>Nhấn Ctrl/Cmd + V để dán ảnh từ clipboard</small></div></div>
+      <p id="status" class="status" role="status">Đang kiểm tra khả năng quét QR của trình duyệt...</p>
+      <div class="preview"><canvas id="canvas"></canvas></div>
+      <label class="field-label" for="result">Nội dung QR</label>
+      <textarea id="result" readonly placeholder="Nội dung QR sẽ xuất hiện ở đây."></textarea>
+      <div class="action-row"><button id="copyButton" class="button" type="button" disabled>Sao chép nội dung</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const result = document.getElementById('result');
+    const copyButton = document.getElementById('copyButton');
+    const status = document.getElementById('status');
+    let detector = null;
+
+    try {
+      if ('BarcodeDetector' in window) detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+    } catch {
+      detector = null;
+    }
+
+    if (detector) status.textContent = 'Sẵn sàng. Ảnh được xử lý trực tiếp trong trình duyệt.';
+    else status.textContent = 'Trình duyệt này chưa hỗ trợ quét QR. Hãy dùng Chrome hoặc Edge phiên bản mới.';
+
+    async function decodeImage(file) {
+      if (!file || !file.type.startsWith('image/')) { status.textContent = 'Vui lòng chọn một tệp ảnh.'; return; }
+      if (!detector) return;
+      result.value = '';
+      copyButton.disabled = true;
+      try {
+        const bitmap = await createImageBitmap(file);
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        status.textContent = 'Đang quét QR...';
+        const codes = await detector.detect(canvas);
+        if (!codes.length) { status.textContent = 'Không tìm thấy QR code trong ảnh này.'; return; }
+        result.value = codes.map(code => code.rawValue).join('\n\n');
+        copyButton.disabled = false;
+        status.textContent = codes.length === 1 ? 'Đã đọc 1 QR code.' : `Đã đọc ${codes.length} QR code.`;
+      } catch (error) {
+        status.textContent = error.message || 'Không thể đọc ảnh này.';
+      }
+    }
+
+    async function copyResult() {
+      if (!result.value) return;
+      try {
+        await navigator.clipboard.writeText(result.value);
+        status.textContent = 'Đã sao chép nội dung QR.';
+      } catch {
+        result.focus(); result.select();
+        status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.';
+      }
+    }
+
+    function clearAll() {
+      canvas.width = 0; canvas.height = 0;
+      fileInput.value = ''; result.value = ''; copyButton.disabled = true;
+      status.textContent = detector ? 'Sẵn sàng quét ảnh QR mới.' : 'Trình duyệt này chưa hỗ trợ quét QR.';
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
+    fileInput.addEventListener('change', () => decodeImage(fileInput.files[0]));
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('is-dragging'); }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
+    dropZone.addEventListener('drop', event => decodeImage(event.dataTransfer.files[0]));
+    document.addEventListener('paste', event => {
+      const item = [...(event.clipboardData?.items || [])].find(current => current.type.startsWith('image/'));
+      if (item) decodeImage(item.getAsFile());
+    });
+    copyButton.addEventListener('click', copyResult);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>

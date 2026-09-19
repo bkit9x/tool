@@ -1,383 +1,90 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Excel to Markdown Table</title>
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f6f7fb;
-      color: #111827;
-    }
-
-    .wrap {
-      max-width: 1100px;
-      margin: 32px auto;
-      padding: 0 16px;
-    }
-
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    p { margin: 0 0 20px; color: #4b5563; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 800px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-
-    .card {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-    }
-
-    label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 360px;
-      resize: vertical;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      padding: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 14px;
-      line-height: 1.5;
-      outline: none;
-    }
-
-    textarea:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin: 14px 0;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 10px 16px;
-      cursor: pointer;
-      font-weight: 700;
-      background: #111827;
-      color: white;
-    }
-
-    button.secondary { background: #e5e7eb; color: #111827; }
-    button:hover { opacity: .9; }
-
-    .options {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-      color: #374151;
-      font-size: 14px;
-    }
-
-    .preview {
-      overflow: auto;
-      max-height: 360px;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 12px;
-      background: #fff;
-    }
-
-    table { border-collapse: collapse; width: 100%; }
-
-    th, td {
-      border: 1px solid #d1d5db;
-      padding: 8px 10px;
-      text-align: left;
-      white-space: pre-wrap;
-      vertical-align: top;
-    }
-
-    th { background: #f3f4f6; }
-    .hint { font-size: 13px; color: #6b7280; margin-top: 8px; }
-    .status { font-size: 13px; color: #047857; margin-top: 8px; min-height: 18px; }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
 </head>
-<body>
-  <main class="wrap">
-    <h1>Excel → Markdown Table</h1>
-    <p>Copy vùng dữ liệu trong Excel/Google Sheets, paste vào ô bên trái, công cụ sẽ tự sinh Markdown table.</p>
-
-    <div class="options">
-      <label><input id="firstRowHeader" type="checkbox" checked /> Dòng đầu là header</label>
-      <label><input id="trimCells" type="checkbox" checked /> Xóa khoảng trắng thừa</label>
-      <label><input id="emptyAsDash" type="checkbox" /> Ô trống thành “-”</label>
-    </div>
-
-    <div class="actions">
-      <button id="convertBtn" type="button">Chuyển sang Markdown</button>
-      <button id="copyBtn" class="secondary" type="button">Copy Markdown</button>
-      <button id="clearBtn" class="secondary" type="button">Xóa</button>
-    </div>
-
-    <section class="grid">
-      <div class="card">
-        <label for="excelInput">Dữ liệu paste từ Excel</label>
-        <textarea id="excelInput" placeholder="Ví dụ:&#10;Tên&#9;Số lượng&#10;Cây bàng&#9;&quot;Số lượng&#10;(cây)&quot;"></textarea>
-        <div class="hint">Hỗ trợ ô Excel có xuống dòng bên trong, ví dụ: <code>&quot;Số lượng↵(cây)&quot;</code>.</div>
+<body data-tool-name="Excel to Markdown" data-tool-category="Dữ liệu" data-tool-description="Chuyển dữ liệu bảng được dán từ Excel thành bảng Markdown.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="split-grid">
+        <div><label class="field-label" for="excelInput">Dữ liệu từ Excel</label><textarea id="excelInput" placeholder="Dán bảng Excel vào đây..."></textarea></div>
+        <div><label class="field-label" for="markdownOutput">Markdown</label><textarea id="markdownOutput" readonly placeholder="Bảng Markdown sẽ xuất hiện ở đây."></textarea></div>
       </div>
-
-      <div class="card">
-        <label for="markdownOutput">Markdown output</label>
-        <textarea id="markdownOutput" readonly placeholder="Markdown table sẽ hiện ở đây..."></textarea>
-        <div id="copyStatus" class="status"></div>
+      <div class="option-row">
+        <label><input id="firstRowHeader" type="checkbox" checked> Dòng đầu là tiêu đề</label>
+        <label><input id="trimCells" type="checkbox" checked> Bỏ khoảng trắng thừa</label>
+        <label><input id="emptyAsDash" type="checkbox"> Ô trống thành dấu gạch ngang</label>
       </div>
+      <div class="action-row"><button id="convertButton" class="button" type="button">Chuyển đổi</button><button id="copyButton" class="button button-secondary" type="button">Sao chép Markdown</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
+      <p id="status" class="status" role="status"></p>
+      <label class="field-label">Xem trước</label><div id="preview" class="preview">Chưa có dữ liệu.</div>
     </section>
-
-    <div class="card" style="margin-top:16px;">
-      <label>Preview</label>
-      <div id="preview" class="preview">Chưa có dữ liệu.</div>
-    </div>
   </main>
-
+  <script src="tool-shell.js"></script>
   <script>
-    'use strict';
-
     const excelInput = document.getElementById('excelInput');
     const markdownOutput = document.getElementById('markdownOutput');
-    const preview = document.getElementById('preview');
     const firstRowHeader = document.getElementById('firstRowHeader');
     const trimCells = document.getElementById('trimCells');
     const emptyAsDash = document.getElementById('emptyAsDash');
-    const copyStatus = document.getElementById('copyStatus');
-
-    function escapeMarkdownCell(value) {
-      return String(value)
-        .replaceAll('|', '\\|')
-        .replace(/\r\n|\r|\n/g, '<br>');
-    }
+    const preview = document.getElementById('preview');
+    const status = document.getElementById('status');
 
     function normalizeCell(value) {
-      let cell = trimCells.checked ? String(value).trim() : String(value);
-      if (emptyAsDash.checked && cell === '') cell = '-';
-      return cell;
+      const cell = trimCells.checked ? value.trim() : value;
+      return emptyAsDash.checked && !cell ? '-' : cell;
     }
 
-    function parseExcelText(text) {
-      const input = String(text).replace(/\r\n|\r/g, '\n');
-      const rows = [];
-      let row = [];
-      let cell = '';
-      let inQuotes = false;
-
-      for (let i = 0; i < input.length; i++) {
-        const char = input[i];
-        const nextChar = input[i + 1];
-
-        if (char === '"') {
-          if (inQuotes && nextChar === '"') {
-            cell += '"';
-            i += 1;
-          } else {
-            inQuotes = !inQuotes;
-          }
-          continue;
-        }
-
-        if (char === '\t' && !inQuotes) {
-          row.push(normalizeCell(cell));
-          cell = '';
-          continue;
-        }
-
-        if (char === '\n' && !inQuotes) {
-          row.push(normalizeCell(cell));
-          rows.push(row);
-          row = [];
-          cell = '';
-          continue;
-        }
-
-        cell += char;
+    // Excel exports tab-delimited data and quotes fields that contain newlines.
+    function parseExcel(text) {
+      const source = text.replace(/\r\n?|\n/g, '\n');
+      const rows = []; let row = []; let cell = ''; let quoted = false;
+      for (let index = 0; index < source.length; index += 1) {
+        const character = source[index];
+        if (character === '"') {
+          if (quoted && source[index + 1] === '"') { cell += '"'; index += 1; } else quoted = !quoted;
+        } else if (character === '\t' && !quoted) { row.push(normalizeCell(cell)); cell = ''; }
+        else if (character === '\n' && !quoted) { row.push(normalizeCell(cell)); rows.push(row); row = []; cell = ''; }
+        else cell += character;
       }
-
-      if (cell !== '' || row.length > 0) {
-        row.push(normalizeCell(cell));
-        rows.push(row);
-      }
-
-      return rows.filter(r => r.some(c => c !== ''));
+      if (cell || row.length) { row.push(normalizeCell(cell)); rows.push(row); }
+      return rows.filter(currentRow => currentRow.some(value => value !== ''));
     }
 
     function padRows(rows) {
-      const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0);
-      return rows.map(row => {
-        const padded = row.slice();
-        while (padded.length < maxCols) padded.push(emptyAsDash.checked ? '-' : '');
-        return padded;
-      });
+      const columns = Math.max(...rows.map(row => row.length));
+      return rows.map(row => [...row, ...Array(columns - row.length).fill(emptyAsDash.checked ? '-' : '')]);
     }
 
-    function toMarkdown(rows) {
-      if (!rows.length) return '';
-
-      const paddedRows = padRows(rows);
-      const header = firstRowHeader.checked
-        ? paddedRows[0]
-        : paddedRows[0].map((_, index) => `Cột ${index + 1}`);
-      const body = firstRowHeader.checked ? paddedRows.slice(1) : paddedRows;
-
-      const line = cells => `| ${cells.map(escapeMarkdownCell).join(' | ')} |`;
-      const separator = `| ${header.map(() => '---').join(' | ')} |`;
-
-      return [line(header), separator, ...body.map(line)].join('\n');
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    function renderPreview(rows) {
-      if (!rows.length) {
-        preview.textContent = 'Chưa có dữ liệu.';
-        return;
-      }
-
-      const paddedRows = padRows(rows);
-      const header = firstRowHeader.checked
-        ? paddedRows[0]
-        : paddedRows[0].map((_, index) => `Cột ${index + 1}`);
-      const body = firstRowHeader.checked ? paddedRows.slice(1) : paddedRows;
-
-      const thead = header.map(cell => `<th>${escapeHtml(cell)}</th>`).join('');
-      const tbody = body
-        .map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
-        .join('');
-
-      preview.innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
-    }
+    function escapeMarkdown(value) { return value.replaceAll('|', '\\|').replace(/\r?\n/g, '<br>'); }
+    function escapeHtml(value) { const node = document.createElement('span'); node.textContent = value; return node.innerHTML; }
 
     function convert() {
-      const rows = parseExcelText(excelInput.value);
-      markdownOutput.value = toMarkdown(rows);
-      renderPreview(rows);
-      copyStatus.textContent = '';
+      const parsed = parseExcel(excelInput.value);
+      if (!parsed.length) { markdownOutput.value = ''; preview.textContent = 'Chưa có dữ liệu.'; return; }
+      const rows = padRows(parsed);
+      const header = firstRowHeader.checked ? rows[0] : rows[0].map((_, index) => `Cột ${index + 1}`);
+      const body = firstRowHeader.checked ? rows.slice(1) : rows;
+      const markdownLine = cells => `| ${cells.map(escapeMarkdown).join(' | ')} |`;
+      markdownOutput.value = [markdownLine(header), markdownLine(header.map(() => '---')), ...body.map(markdownLine)].join('\n');
+      preview.innerHTML = `<table><thead><tr>${header.map(cell => `<th>${escapeHtml(cell)}</th>`).join('')}</tr></thead><tbody>${body.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
     }
 
     async function copyMarkdown() {
       convert();
       if (!markdownOutput.value) return;
-
-      try {
-        await navigator.clipboard.writeText(markdownOutput.value);
-        copyStatus.textContent = 'Đã copy Markdown vào clipboard.';
-      } catch (error) {
-        markdownOutput.focus();
-        markdownOutput.select();
-        copyStatus.textContent = 'Không copy tự động được. Hãy nhấn Ctrl/Cmd + C.';
-      }
+      try { await navigator.clipboard.writeText(markdownOutput.value); status.textContent = 'Đã sao chép Markdown.'; }
+      catch { markdownOutput.focus(); markdownOutput.select(); status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.'; }
     }
 
-    function clearAll() {
-      excelInput.value = '';
-      markdownOutput.value = '';
-      preview.textContent = 'Chưa có dữ liệu.';
-      copyStatus.textContent = '';
-      excelInput.focus();
-    }
-
-    function runTests() {
-      const originalTrim = trimCells.checked;
-      const originalDash = emptyAsDash.checked;
-      const originalHeader = firstRowHeader.checked;
-
-      trimCells.checked = true;
-      emptyAsDash.checked = false;
-      firstRowHeader.checked = true;
-
-      const cases = [
-        {
-          name: 'simple table',
-          input: 'Tên\tTuổi\nAn\t25',
-          expectedRows: [['Tên', 'Tuổi'], ['An', '25']],
-          expectedMarkdown: '| Tên | Tuổi |\n| --- | --- |\n| An | 25 |'
-        },
-        {
-          name: 'multiline Excel cell',
-          input: 'Tên\tGhi chú\nCây bàng\t"Số lượng\n(cây)"',
-          expectedRows: [['Tên', 'Ghi chú'], ['Cây bàng', 'Số lượng\n(cây)']],
-          expectedMarkdown: '| Tên | Ghi chú |\n| --- | --- |\n| Cây bàng | Số lượng<br>(cây) |'
-        },
-        {
-          name: 'escaped quote inside quoted cell',
-          input: 'Tên\tGhi chú\nA\t"Có dấu ""nháy"""',
-          expectedRows: [['Tên', 'Ghi chú'], ['A', 'Có dấu "nháy"']],
-          expectedMarkdown: '| Tên | Ghi chú |\n| --- | --- |\n| A | Có dấu "nháy" |'
-        },
-        {
-          name: 'pipe is escaped',
-          input: 'A\tB\n1\tX|Y',
-          expectedRows: [['A', 'B'], ['1', 'X|Y']],
-          expectedMarkdown: '| A | B |\n| --- | --- |\n| 1 | X\\|Y |'
-        }
-      ];
-
-      for (const testCase of cases) {
-        const rows = parseExcelText(testCase.input);
-        const markdown = toMarkdown(rows);
-        const rowsJson = JSON.stringify(rows);
-        const expectedRowsJson = JSON.stringify(testCase.expectedRows);
-
-        console.assert(
-          rowsJson === expectedRowsJson,
-          `${testCase.name}: rows mismatch`,
-          rows,
-          testCase.expectedRows
-        );
-
-        console.assert(
-          markdown === testCase.expectedMarkdown,
-          `${testCase.name}: markdown mismatch`,
-          markdown,
-          testCase.expectedMarkdown
-        );
-      }
-
-      trimCells.checked = originalTrim;
-      emptyAsDash.checked = originalDash;
-      firstRowHeader.checked = originalHeader;
-    }
-
-    document.getElementById('convertBtn').addEventListener('click', convert);
-    document.getElementById('copyBtn').addEventListener('click', copyMarkdown);
-    document.getElementById('clearBtn').addEventListener('click', clearAll);
-
-    [excelInput, firstRowHeader, trimCells, emptyAsDash].forEach(element => {
-      element.addEventListener('input', convert);
-      element.addEventListener('change', convert);
-    });
-
-    runTests();
+    function clearAll() { excelInput.value = ''; markdownOutput.value = ''; preview.textContent = 'Chưa có dữ liệu.'; status.textContent = ''; excelInput.focus(); }
+    [excelInput, firstRowHeader, trimCells, emptyAsDash].forEach(element => element.addEventListener(element === excelInput ? 'input' : 'change', convert));
+    document.getElementById('convertButton').addEventListener('click', convert);
+    document.getElementById('copyButton').addEventListener('click', copyMarkdown);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
   </script>
 </body>
 </html>

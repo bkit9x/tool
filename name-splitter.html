@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .mode-button[aria-pressed="true"] { border-color: var(--mint); background: var(--mint); color: var(--mint-ink); }
+  </style>
+</head>
+<body data-tool-name="Name Splitter" data-tool-category="Văn bản" data-tool-description="Tách họ tên thành các cột tab hoặc tạo username không dấu theo từng dòng.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <label class="field-label" for="namesInput">Danh sách họ tên - mỗi dòng một người</label>
+      <textarea id="namesInput" placeholder="Nguyễn Văn An&#10;Trần Thị Bình&#10;Lê Minh Châu"></textarea>
+      <div class="action-row"><button class="button mode-button" type="button" data-mode="split" aria-pressed="true">Tách thành cột tab</button><button class="button button-secondary mode-button" type="button" data-mode="username" aria-pressed="false">Tạo username</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
+      <p id="status" class="status" role="status">Chế độ tách: Họ, tên đệm và tên riêng được ngăn cách bằng tab trên từng dòng.</p>
+      <label id="outputLabel" class="field-label" for="output">Kết quả - giữ nguyên thứ tự dòng</label>
+      <textarea id="output" readonly placeholder="Kết quả sẽ xuất hiện ở đây."></textarea>
+      <div class="action-row"><button id="copyButton" class="button" type="button" disabled>Sao chép kết quả</button></div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const namesInput = document.getElementById('namesInput');
+    const output = document.getElementById('output');
+    const outputLabel = document.getElementById('outputLabel');
+    const status = document.getElementById('status');
+    const copyButton = document.getElementById('copyButton');
+    let activeMode = 'split';
+
+    function normalizeUsername(value) {
+      return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]/gu, '');
+    }
+
+    function splitName(value) {
+      const parts = value.trim().replace(/\s+/g, ' ').split(' ');
+      const surname = parts.length > 1 ? parts[0] : '';
+      const givenName = parts.at(-1);
+      const middleName = parts.slice(1, -1).join(' ');
+      const username = normalizeUsername(givenName) + parts.slice(0, -1).map(part => normalizeUsername(part).charAt(0)).join('');
+      return { surname, middleName, givenName, username };
+    }
+
+    function render() {
+      const lines = namesInput.value.split(/\r\n|\r|\n/);
+      const hasContent = lines.some(line => line.trim());
+      output.value = lines.map(line => {
+        if (!line.trim()) return '';
+        const name = splitName(line);
+        return activeMode === 'split' ? [name.surname, name.middleName, name.givenName].join('\t') : name.username;
+      }).join('\n');
+      copyButton.disabled = !hasContent;
+      if (activeMode === 'split') {
+        outputLabel.textContent = 'Kết quả - Họ [tab] Tên đệm [tab] Tên riêng';
+        status.textContent = hasContent ? 'Đã chèn tab giữa họ, tên đệm và tên riêng; thứ tự dòng được giữ nguyên.' : 'Nhập một họ tên trên mỗi dòng.';
+      } else {
+        outputLabel.textContent = 'Kết quả username - một username trên mỗi dòng';
+        status.textContent = hasContent ? 'Đã tạo username theo thứ tự dòng: tên + chữ cái đầu họ/tên lót.' : 'Nhập một họ tên trên mỗi dòng.';
+      }
+    }
+
+    function setMode(mode) {
+      activeMode = mode;
+      document.querySelectorAll('[data-mode]').forEach(button => {
+        const selected = button.dataset.mode === mode;
+        button.setAttribute('aria-pressed', selected);
+        button.classList.toggle('button-secondary', !selected);
+      });
+      render();
+    }
+
+    async function copyOutput() {
+      if (!output.value) return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        status.textContent = 'Đã sao chép kết quả.';
+      } catch {
+        output.focus(); output.select();
+        status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.';
+      }
+    }
+
+    function clearAll() {
+      namesInput.value = ''; output.value = ''; copyButton.disabled = true;
+      status.textContent = 'Chế độ tách: Họ, tên đệm và tên riêng được ngăn cách bằng tab trên từng dòng.';
+      namesInput.focus();
+    }
+
+    namesInput.addEventListener('input', render);
+    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => setMode(button.dataset.mode)));
+    document.getElementById('copyButton').addEventListener('click', copyOutput);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>

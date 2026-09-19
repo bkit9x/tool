@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .codec-group { margin-top: 22px; }
+    .codec-group h2 { margin: 0 0 9px; color: var(--muted); font-family: Consolas, monospace; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    .codec-group .action-row { margin-top: 0; }
+    .codec-group .button { padding: 8px 11px; }
+  </style>
+</head>
+<body data-tool-name="Encode / Decode" data-tool-category="Chuyển đổi" data-tool-description="Mã hóa và giải mã văn bản bằng Base64, URL, HTML, Hex, Unicode, JSON và ROT13.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="split-grid">
+        <div><label class="field-label" for="input">Đầu vào</label><textarea id="input" placeholder="Nhập hoặc dán văn bản..."></textarea></div>
+        <div><label class="field-label" for="output">Kết quả</label><textarea id="output" readonly placeholder="Kết quả sẽ xuất hiện ở đây."></textarea></div>
+      </div>
+      <div class="action-row"><button id="useResultButton" class="button" type="button" disabled>Dùng kết quả làm đầu vào</button><button id="copyButton" class="button button-secondary" type="button" disabled>Sao chép kết quả</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
+      <p id="status" class="status" role="status"></p>
+
+      <section class="codec-group" aria-labelledby="web-title"><h2 id="web-title">Web</h2><div class="action-row">
+        <button class="button" type="button" data-codec="base64" data-direction="encode">Base64 encode</button><button class="button button-secondary" type="button" data-codec="base64" data-direction="decode">Base64 decode</button><button class="button" type="button" data-codec="base64url" data-direction="encode">Base64URL encode</button><button class="button button-secondary" type="button" data-codec="base64url" data-direction="decode">Base64URL decode</button><button class="button" type="button" data-codec="url" data-direction="encode">URL encode</button><button class="button button-secondary" type="button" data-codec="url" data-direction="decode">URL decode</button><button class="button" type="button" data-codec="html" data-direction="encode">HTML encode</button><button class="button button-secondary" type="button" data-codec="html" data-direction="decode">HTML decode</button>
+      </div></section>
+
+      <section class="codec-group" aria-labelledby="text-title"><h2 id="text-title">Văn bản</h2><div class="action-row">
+        <button class="button" type="button" data-codec="hex" data-direction="encode">Hex UTF-8 encode</button><button class="button button-secondary" type="button" data-codec="hex" data-direction="decode">Hex UTF-8 decode</button><button class="button" type="button" data-codec="unicode" data-direction="encode">Unicode escape</button><button class="button button-secondary" type="button" data-codec="unicode" data-direction="decode">Unicode unescape</button><button class="button" type="button" data-codec="json" data-direction="encode">JSON string encode</button><button class="button button-secondary" type="button" data-codec="json" data-direction="decode">JSON string decode</button><button class="button" type="button" data-codec="rot13" data-direction="encode">ROT13 encode</button><button class="button button-secondary" type="button" data-codec="rot13" data-direction="decode">ROT13 decode</button>
+      </div></section>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const useResultButton = document.getElementById('useResultButton');
+    const copyButton = document.getElementById('copyButton');
+    const status = document.getElementById('status');
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+
+    function bytesToBase64(bytes) {
+      let binary = '';
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+      return btoa(binary);
+    }
+
+    function base64ToBytes(value) {
+      const binary = atob(value.replace(/\s/g, ''));
+      return Uint8Array.from(binary, character => character.charCodeAt(0));
+    }
+
+    function encodeHtml(value) {
+      const element = document.createElement('div');
+      element.textContent = value;
+      return element.innerHTML;
+    }
+
+    function decodeHtml(value) {
+      const element = document.createElement('textarea');
+      element.innerHTML = value;
+      return element.value;
+    }
+
+    function decodeUnicode(value) {
+      return value.replace(/\\u\{([\da-fA-F]+)\}|\\u([\da-fA-F]{4})|\\x([\da-fA-F]{2})/g, (match, braced, unicode, hex) => {
+        const codePoint = parseInt(braced || unicode || hex, 16);
+        if (codePoint > 0x10ffff) throw new Error('Unicode code point không hợp lệ.');
+        return String.fromCodePoint(codePoint);
+      });
+    }
+
+    function rot13(value) {
+      return value.replace(/[a-z]/gi, character => {
+        const base = character <= 'Z' ? 65 : 97;
+        return String.fromCharCode((character.charCodeAt(0) - base + 13) % 26 + base);
+      });
+    }
+
+    const codecs = {
+      base64: {
+        encode: value => bytesToBase64(encoder.encode(value)),
+        decode: value => decoder.decode(base64ToBytes(value))
+      },
+      base64url: {
+        encode: value => bytesToBase64(encoder.encode(value)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/g, ''),
+        decode: value => {
+          const normalized = value.replaceAll('-', '+').replaceAll('_', '/');
+          return decoder.decode(base64ToBytes(normalized + '='.repeat((4 - normalized.length % 4) % 4)));
+        }
+      },
+      url: { encode: encodeURIComponent, decode: decodeURIComponent },
+      html: { encode: encodeHtml, decode: decodeHtml },
+      hex: {
+        encode: value => Array.from(encoder.encode(value), byte => byte.toString(16).padStart(2, '0')).join(''),
+        decode: value => {
+          const clean = value.replace(/0x/gi, '').replace(/\s/g, '');
+          if (!/^[\da-f]*$/i.test(clean) || clean.length % 2) throw new Error('Chuỗi Hex phải gồm số ký tự chẵn từ 0-9 và A-F.');
+          return decoder.decode(Uint8Array.from(clean.match(/.{2}/g) || [], pair => parseInt(pair, 16)));
+        }
+      },
+      unicode: {
+        encode: value => Array.from(value, character => `\\u{${character.codePointAt(0).toString(16).toUpperCase()}}`).join(''),
+        decode: decodeUnicode
+      },
+      json: {
+        encode: value => JSON.stringify(value),
+        decode: value => {
+          const decoded = JSON.parse(value);
+          return typeof decoded === 'string' ? decoded : JSON.stringify(decoded, null, 2);
+        }
+      },
+      rot13: { encode: rot13, decode: rot13 }
+    };
+
+    function transform(codec, direction, label) {
+      if (!input.value) { status.textContent = 'Nhập nội dung trước khi chuyển đổi.'; return; }
+      try {
+        output.value = codecs[codec][direction](input.value);
+        useResultButton.disabled = false;
+        copyButton.disabled = false;
+        status.textContent = `Đã ${direction === 'encode' ? 'mã hóa' : 'giải mã'} bằng ${label}.`;
+      } catch (error) {
+        output.value = '';
+        useResultButton.disabled = true;
+        copyButton.disabled = true;
+        status.textContent = error.message || 'Không thể chuyển đổi nội dung.';
+      }
+    }
+
+    async function copyResult() {
+      if (!output.value) return;
+      try { await navigator.clipboard.writeText(output.value); status.textContent = 'Đã sao chép kết quả.'; }
+      catch { output.focus(); output.select(); status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.'; }
+    }
+
+    document.querySelectorAll('[data-codec]').forEach(button => button.addEventListener('click', () => transform(button.dataset.codec, button.dataset.direction, button.textContent)));
+    useResultButton.addEventListener('click', () => { input.value = output.value; output.value = ''; useResultButton.disabled = true; copyButton.disabled = true; status.textContent = 'Đã dùng kết quả làm đầu vào mới.'; input.focus(); });
+    copyButton.addEventListener('click', copyResult);
+    document.getElementById('clearButton').addEventListener('click', () => { input.value = ''; output.value = ''; useResultButton.disabled = true; copyButton.disabled = true; status.textContent = ''; input.focus(); });
+  </script>
+</body>
+</html>

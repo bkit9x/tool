@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .phone-options { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 14px 0; color: var(--muted); font-size: .9rem; }
+    .phone-options select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--input); color: var(--text); }
+    .phone-options label { display: flex; align-items: center; gap: 7px; }
+    .phone-table { width: 100%; overflow-x: auto; margin-top: 20px; border: 1px solid var(--line); border-radius: 10px; }
+    .phone-table table { min-width: 680px; }
+    .valid { color: var(--mint); }.invalid { color: var(--danger); }
+  </style>
+</head>
+<body data-tool-name="Phone Number Normalizer" data-tool-category="Dữ liệu" data-tool-description="Chuẩn hóa, định dạng, kiểm tra số điện thoại Việt Nam và nhận diện nhà mạng.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="split-grid">
+        <div><label class="field-label" for="phoneInput">Danh sách số điện thoại - mỗi dòng một số</label><textarea id="phoneInput" placeholder="+84 901 234 567&#10;0084 912 345 678&#10;090-123-4567"></textarea></div>
+        <div><label class="field-label" for="phoneOutput">Kết quả đã chuẩn hóa</label><textarea id="phoneOutput" readonly placeholder="Danh sách chuẩn hóa sẽ xuất hiện ở đây."></textarea></div>
+      </div>
+      <div class="phone-options"><label for="separator">Tách số bằng</label><select id="separator"><option value="">Không tách</option><option value=" ">Khoảng trắng</option><option value=".">Dấu chấm</option></select><label><input id="international" type="checkbox"> Thêm +84</label></div>
+      <div class="action-row"><button id="normalizeButton" class="button" type="button">Chuẩn hóa</button><button id="copyButton" class="button button-secondary" type="button" disabled>Sao chép kết quả</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
+      <p id="status" class="status" role="status">Tự động bỏ ký tự không phải số, đầu 00 và đổi +84/84 thành 0.</p>
+      <div id="details" class="phone-table" hidden></div>
+      <p class="status">Nhà mạng được nhận diện theo đầu số di động, không phản ánh trạng thái chuyển mạng giữ số.</p>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const phoneInput = document.getElementById('phoneInput');
+    const phoneOutput = document.getElementById('phoneOutput');
+    const separator = document.getElementById('separator');
+    const international = document.getElementById('international');
+    const copyButton = document.getElementById('copyButton');
+    const status = document.getElementById('status');
+    const details = document.getElementById('details');
+
+    const carrierPrefixes = [
+      { name: 'Viettel', prefixes: ['032', '033', '034', '035', '036', '037', '038', '039', '086', '096', '097', '098'] },
+      { name: 'VinaPhone', prefixes: ['081', '082', '083', '084', '085', '088', '091', '094'] },
+      { name: 'MobiFone', prefixes: ['070', '076', '077', '078', '079', '089', '090', '093'] },
+      { name: 'Vietnamobile', prefixes: ['052', '056', '058', '092'] },
+      { name: 'Gmobile', prefixes: ['059', '099'] },
+      { name: 'iTel', prefixes: ['087'] },
+      { name: 'Wintel', prefixes: ['055'] }
+    ];
+
+    function normalizePhone(value) {
+      let digits = value.replace(/\D/g, '');
+      if (digits.startsWith('00')) digits = digits.slice(2);
+      if (digits.startsWith('84')) digits = `0${digits.slice(2)}`;
+      return digits;
+    }
+
+    function inspectPhone(number) {
+      if (!number) return { valid: false, reason: 'Không có chữ số', carrier: '-' };
+      if (/^0[35789]\d{8}$/.test(number)) {
+        const carrier = carrierPrefixes.find(item => item.prefixes.includes(number.slice(0, 3)));
+        return { valid: true, reason: 'Di động hợp lệ', carrier: carrier ? carrier.name : 'Đầu số chưa xác định' };
+      }
+      if (/^02\d{8,9}$/.test(number)) return { valid: true, reason: 'Điện thoại cố định hợp lệ', carrier: 'Cố định' };
+      if (!number.startsWith('0')) return { valid: false, reason: 'Phải bắt đầu bằng số 0', carrier: '-' };
+      if (number.length < 10) return { valid: false, reason: 'Thiếu số ký tự', carrier: '-' };
+      if (number.length > 11) return { valid: false, reason: 'Thừa số ký tự', carrier: '-' };
+      return { valid: false, reason: 'Đầu số hoặc độ dài không hợp lệ', carrier: '-' };
+    }
+
+    function formatPhone(number) {
+      if (!number) return '';
+      const joiner = separator.value;
+      if (!joiner) return international.checked && number.startsWith('0') ? `+84${number.slice(1)}` : number;
+      if (/^0[35789]\d{8}$/.test(number)) {
+        if (international.checked) return [`+84`, number.slice(1, 3), number.slice(3, 6), number.slice(6)].join(joiner);
+        return [number.slice(0, 3), number.slice(3, 6), number.slice(6)].join(joiner);
+      }
+      const prefix = international.checked && number.startsWith('0') ? '+84' : '';
+      const body = prefix ? number.slice(1) : number;
+      const chunks = body.match(/.{1,3}/g) || [];
+      return [prefix, ...chunks].filter(Boolean).join(joiner);
+    }
+
+    function renderDetails(records) {
+      details.replaceChildren();
+      details.hidden = records.length === 0;
+      if (!records.length) return;
+      const table = document.createElement('table');
+      const header = document.createElement('thead');
+      header.innerHTML = '<tr><th>Đầu vào</th><th>Chuẩn hóa</th><th>Trạng thái</th><th>Nhà mạng</th></tr>';
+      const body = document.createElement('tbody');
+      records.forEach(record => {
+        const row = document.createElement('tr');
+        [record.input, record.normalized, record.inspection.reason, record.inspection.carrier].forEach((value, index) => {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          if (index === 2) cell.className = record.inspection.valid ? 'valid' : 'invalid';
+          row.append(cell);
+        });
+        body.append(row);
+      });
+      table.append(header, body);
+      details.append(table);
+    }
+
+    function normalizeList() {
+      const records = phoneInput.value.split(/\r\n|\r|\n/).filter(line => line.trim()).map(value => {
+        const normalized = normalizePhone(value);
+        return { input: value, normalized, inspection: inspectPhone(normalized) };
+      });
+      phoneOutput.value = records.map(record => formatPhone(record.normalized)).join('\n');
+      copyButton.disabled = !phoneOutput.value;
+      renderDetails(records);
+      if (!records.length) { status.textContent = 'Nhập một số điện thoại trên mỗi dòng.'; return; }
+      const invalidCount = records.filter(record => !record.inspection.valid).length;
+      status.textContent = invalidCount ? `Đã chuẩn hóa ${records.length} số, có ${invalidCount} số không hợp lệ.` : `Đã chuẩn hóa ${records.length} số hợp lệ.`;
+    }
+
+    async function copyResult() {
+      if (!phoneOutput.value) return;
+      try { await navigator.clipboard.writeText(phoneOutput.value); status.textContent = 'Đã sao chép danh sách số điện thoại.'; }
+      catch { phoneOutput.focus(); phoneOutput.select(); status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.'; }
+    }
+
+    function clearAll() {
+      phoneInput.value = ''; phoneOutput.value = ''; details.replaceChildren(); details.hidden = true; copyButton.disabled = true;
+      status.textContent = 'Tự động bỏ ký tự không phải số, đầu 00 và đổi +84/84 thành 0.';
+      phoneInput.focus();
+    }
+
+    [phoneInput, separator, international].forEach(element => element.addEventListener(element === phoneInput ? 'input' : 'change', normalizeList));
+    document.getElementById('normalizeButton').addEventListener('click', normalizeList);
+    copyButton.addEventListener('click', copyResult);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "totp-generator",
+    "name": "TOTP / 2FA Generator",
+    "description": "Tạo mã xác thực hai lớp từ secret Base32 hoặc liên kết otpauth.",
+    "path": "2fa.html",
+    "category": "Bảo mật",
+    "icon": "shield_lock",
+    "keywords": ["totp", "2fa", "otp", "authenticator", "security"]
+  },
+  {
+    "id": "excel-to-markdown",
+    "name": "Excel to Markdown",
+    "description": "Chuyển dữ liệu bảng được dán từ Excel thành bảng Markdown.",
+    "path": "excel2md.html",
+    "category": "Dữ liệu",
+    "icon": "table_chart",
+    "keywords": ["excel", "markdown", "table", "tsv", "bảng"]
+  },
+  {
+    "id": "html-entity-decoder",
+    "name": "HTML Entity Decoder",
+    "description": "Giải mã HTML entity thành văn bản tiếng Việt dễ đọc.",
+    "path": "hexdecode.html",
+    "category": "Văn bản",
+    "icon": "code",
+    "keywords": ["html", "entity", "decode", "unicode", "text"]
+  },
+  {
+    "id": "image-reencoder",
+    "name": "Image Re-encoder",
+    "description": "Đọc lại ảnh trong trình duyệt và xuất thành PNG mới.",
+    "path": "bitmapImage.html",
+    "category": "Hình ảnh",
+    "icon": "image",
+    "keywords": ["image", "png", "bitmap", "reencode", "ảnh"]
+  },
+  {
+    "id": "regex-match-extractor",
+    "name": "Regex Match Extractor",
+    "description": "Lấy tất cả kết quả khớp regex và sao chép từng nhóm capture theo dòng.",
+    "path": "regex-extractor.html",
+    "category": "Văn bản",
+    "icon": "regex",
+    "keywords": ["regex", "regular expression", "match", "capture group", "$1", "$2"]
+  },
+  {
+    "id": "text-transformer",
+    "name": "Text Transformer",
+    "description": "Chuyển kiểu chữ, làm sạch ký tự và xử lý từng dòng văn bản.",
+    "path": "text-transformer.html",
+    "category": "Văn bản",
+    "icon": "text",
+    "keywords": ["text", "uppercase", "lowercase", "title case", "clean", "remove special characters"]
+  },
+  {
+    "id": "encoder-decoder",
+    "name": "Encode / Decode",
+    "description": "Mã hóa và giải mã văn bản bằng Base64, URL, HTML, Hex, Unicode, JSON và ROT13.",
+    "path": "encoder-decoder.html",
+    "category": "Chuyển đổi",
+    "icon": "codec",
+    "keywords": ["encode", "decode", "base64", "base64url", "url", "html", "hex", "unicode", "json", "rot13"]
+  },
+  {
+    "id": "qr-code-decoder",
+    "name": "QR Code Decoder",
+    "description": "Đọc nội dung QR code từ ảnh tải lên, kéo thả hoặc dán từ clipboard.",
+    "path": "qr-decoder.html",
+    "category": "Hình ảnh",
+    "icon": "qr",
+    "keywords": ["qr", "qrcode", "scan", "decode", "barcode", "clipboard", "ảnh"]
+  },
+  {
+    "id": "name-splitter",
+    "name": "Name Splitter",
+    "description": "Tách họ tên theo danh sách và tạo username không dấu từ từng tên.",
+    "path": "name-splitter.html",
+    "category": "Văn bản",
+    "icon": "name",
+    "keywords": ["name", "surname", "given name", "username", "họ tên", "danh sách"]
+  },
+  {
+    "id": "phone-number-normalizer",
+    "name": "Phone Number Normalizer",
+    "description": "Chuẩn hóa, định dạng, kiểm tra số điện thoại Việt Nam và nhận diện nhà mạng.",
+    "path": "phone-normalizer.html",
+    "category": "Dữ liệu",
+    "icon": "phone",
+    "keywords": ["phone", "telephone", "mobile", "viettel", "vinaphone", "mobifone", "số điện thoại", "nhà mạng"]
+  }
+]

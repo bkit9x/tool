@@ -1,181 +1,124 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <title>TOTP Generator</title>
-  <style>
-    body { font-family: system-ui; max-width: 560px; margin: 40px auto; }
-    input { width: 100%; padding: 10px; font-size: 16px; }
-    #code { font-size: 42px; font-weight: bold; margin-top: 20px; }
-    .meta { color: #555; margin-top: 8px; }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>.otp-code { margin: 22px 0 5px; color: var(--mint); font-family: Consolas, monospace; font-size: clamp(2.7rem, 10vw, 5.3rem); font-weight: bold; letter-spacing: .08em; line-height: 1; } .countdown { color: var(--muted); font-size: .9rem; }</style>
 </head>
-<body>
-  <h2>TOTP / 2FA Generator</h2>
-
-  <input id="secretInput" placeholder="Nhập secret hoặc otpauth://..." />
-
-  <div id="code">------</div>
-  <div>Còn lại: <span id="remain">--</span>s</div>
-
-  <div class="meta">
-    <div>Issuer: <span id="issuer">-</span></div>
-    <div>Account: <span id="account">-</span></div>
-    <div>Algorithm: <span id="algo">-</span></div>
-    <div>Digits: <span id="digits">-</span></div>
-    <div>Period: <span id="period">-</span></div>
-  </div>
-
+<body data-tool-name="TOTP / 2FA Generator" data-tool-category="Bảo mật" data-tool-description="Tạo mã xác thực hai lớp từ secret Base32 hoặc liên kết otpauth.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <label class="field-label" for="secretInput">Secret hoặc liên kết otpauth</label>
+      <input id="secretInput" type="text" autocomplete="off" spellcheck="false" placeholder="JBSWY3DPEHPK3PXP hoặc otpauth://totp/...">
+      <div id="code" class="otp-code">------</div>
+      <div class="action-row"><button id="copyButton" class="button button-secondary" type="button" disabled>Sao chép mã</button></div>
+      <div class="countdown">Mã mới sau <strong id="remain">--</strong> giây</div>
+      <div class="meta-grid">
+        <div class="meta-item">Nhà phát hành<strong id="issuer">-</strong></div><div class="meta-item">Tài khoản<strong id="account">-</strong></div>
+        <div class="meta-item">Thuật toán<strong id="algorithm">-</strong></div><div class="meta-item">Số chữ số / chu kỳ<strong id="details">-</strong></div>
+      </div>
+      <p id="status" class="status" role="status"></p>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
   <script>
-    const input = document.getElementById("secretInput");
-    const codeEl = document.getElementById("code");
-    const remainEl = document.getElementById("remain");
+    const input = document.getElementById('secretInput');
+    const codeElement = document.getElementById('code');
+    const remainElement = document.getElementById('remain');
+    const status = document.getElementById('status');
+    const copyButton = document.getElementById('copyButton');
 
-    const issuerEl = document.getElementById("issuer");
-    const accountEl = document.getElementById("account");
-    const algoEl = document.getElementById("algo");
-    const digitsEl = document.getElementById("digits");
-    const periodEl = document.getElementById("period");
+    function normalizeAlgorithm(value) {
+      const algorithm = value.toUpperCase().replace('-', '');
+      return ['SHA1', 'SHA256', 'SHA512'].includes(algorithm) ? algorithm.replace('SHA', 'SHA-') : 'SHA-1';
+    }
 
-    function parseOtpInput(value) {
-      value = value.trim();
-
-      const config = {
-        secret: value,
-        issuer: "",
-        account: "",
-        algorithm: "SHA-1",
-        digits: 6,
-        period: 30
-      };
-
-      if (value.toLowerCase().startsWith("otpauth://")) {
-        const url = new URL(value);
-
-        const params = url.searchParams;
-        config.secret = params.get("secret") || "";
-        config.algorithm = normalizeAlgorithm(params.get("algorithm") || "SHA1");
-        config.digits = Number(params.get("digits") || 6);
-        config.period = Number(params.get("period") || 30);
-        config.issuer = params.get("issuer") || "";
-
-        const label = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
-        const parts = label.split(":");
-
-        if (!config.issuer && parts.length > 1) {
-          config.issuer = parts[0];
-        }
-
-        config.account = parts.length > 1 ? parts.slice(1).join(":") : label;
-      } else {
-        config.algorithm = "SHA-1";
+    function parseInput(value) {
+      const config = { secret: value.trim(), issuer: '', account: '', algorithm: 'SHA-1', digits: 6, period: 30 };
+      if (config.secret.toLowerCase().startsWith('otpauth://')) {
+        const url = new URL(config.secret);
+        const label = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+        const [labelIssuer, ...accountParts] = label.split(':');
+        config.secret = url.searchParams.get('secret') || '';
+        config.issuer = url.searchParams.get('issuer') || (accountParts.length ? labelIssuer : '');
+        config.account = accountParts.length ? accountParts.join(':') : label;
+        config.algorithm = normalizeAlgorithm(url.searchParams.get('algorithm') || 'SHA-1');
+        config.digits = Number(url.searchParams.get('digits') || 6);
+        config.period = Number(url.searchParams.get('period') || 30);
       }
-
-      config.secret = config.secret.replace(/\s+/g, "").toUpperCase();
-
+      config.secret = config.secret.replace(/\s+/g, '').toUpperCase();
+      if (!Number.isInteger(config.digits) || config.digits < 6 || config.digits > 10 || !Number.isInteger(config.period) || config.period < 1) throw new Error('Cấu hình TOTP không hợp lệ.');
       return config;
     }
 
-    function normalizeAlgorithm(algo) {
-      const value = algo.toUpperCase().replace("-", "");
-
-      if (value === "SHA1") return "SHA-1";
-      if (value === "SHA256") return "SHA-256";
-      if (value === "SHA512") return "SHA-512";
-
-      return "SHA-1";
-    }
-
-    function base32Decode(base32) {
-      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-      const clean = base32.replace(/=+$/g, "").replace(/\s+/g, "").toUpperCase();
-
-      let bits = "";
-      for (const char of clean) {
-        const val = alphabet.indexOf(char);
-        if (val === -1) throw new Error("Secret không hợp lệ");
-        bits += val.toString(2).padStart(5, "0");
+    function decodeBase32(secret) {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const clean = secret.replace(/=+$/g, '');
+      let bits = '';
+      for (const character of clean) {
+        const position = alphabet.indexOf(character);
+        if (position < 0) throw new Error('Secret Base32 không hợp lệ.');
+        bits += position.toString(2).padStart(5, '0');
       }
-
       const bytes = [];
-      for (let i = 0; i + 8 <= bits.length; i += 8) {
-        bytes.push(parseInt(bits.slice(i, i + 8), 2));
-      }
-
+      for (let offset = 0; offset + 8 <= bits.length; offset += 8) bytes.push(parseInt(bits.slice(offset, offset + 8), 2));
       return new Uint8Array(bytes);
     }
 
-    async function generateTOTP(config) {
-      const keyBytes = base32Decode(config.secret);
+    async function generateCode(config) {
       const counter = Math.floor(Date.now() / 1000 / config.period);
-
       const buffer = new ArrayBuffer(8);
       const view = new DataView(buffer);
-
-      const high = Math.floor(counter / 0x100000000);
-      const low = counter >>> 0;
-
-      view.setUint32(0, high, false);
-      view.setUint32(4, low, false);
-
-      const key = await crypto.subtle.importKey(
-        "raw",
-        keyBytes,
-        { name: "HMAC", hash: config.algorithm },
-        false,
-        ["sign"]
-      );
-
-      const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", key, buffer));
-      const offset = hmac[hmac.length - 1] & 0xf;
-
-      const binary =
-        ((hmac[offset] & 0x7f) << 24) |
-        ((hmac[offset + 1] & 0xff) << 16) |
-        ((hmac[offset + 2] & 0xff) << 8) |
-        (hmac[offset + 3] & 0xff);
-
-      return String(binary % 10 ** config.digits).padStart(config.digits, "0");
+      view.setUint32(0, Math.floor(counter / 0x100000000), false);
+      view.setUint32(4, counter >>> 0, false);
+      const key = await crypto.subtle.importKey('raw', decodeBase32(config.secret), { name: 'HMAC', hash: config.algorithm }, false, ['sign']);
+      const digest = new Uint8Array(await crypto.subtle.sign('HMAC', key, buffer));
+      const offset = digest[digest.length - 1] & 0x0f;
+      const number = ((digest[offset] & 0x7f) << 24) | ((digest[offset + 1] & 0xff) << 16) | ((digest[offset + 2] & 0xff) << 8) | (digest[offset + 3] & 0xff);
+      return String(number % (10 ** config.digits)).padStart(config.digits, '0');
     }
 
-    function updateMeta(config) {
-      issuerEl.textContent = config.issuer || "-";
-      accountEl.textContent = config.account || "-";
-      algoEl.textContent = config.algorithm;
-      digitsEl.textContent = config.digits;
-      periodEl.textContent = config.period;
+    function renderMeta(config) {
+      document.getElementById('issuer').textContent = config.issuer || '-';
+      document.getElementById('account').textContent = config.account || '-';
+      document.getElementById('algorithm').textContent = config.algorithm;
+      document.getElementById('details').textContent = `${config.digits} số / ${config.period}s`;
     }
 
     async function update() {
-      const raw = input.value.trim();
-
-      if (!raw) {
-        codeEl.textContent = "------";
-        remainEl.textContent = "--";
-        updateMeta({
-          issuer: "",
-          account: "",
-          algorithm: "-",
-          digits: "-",
-          period: "-"
-        });
+      if (!input.value.trim()) {
+        codeElement.textContent = '------'; remainElement.textContent = '--'; status.textContent = '';
+        copyButton.disabled = true;
+        renderMeta({ issuer: '-', account: '-', algorithm: '-', digits: '-', period: '-' });
         return;
       }
-
       try {
-        const config = parseOtpInput(raw);
-        updateMeta(config);
-
-        const remain = config.period - (Math.floor(Date.now() / 1000) % config.period);
-        remainEl.textContent = remain;
-
-        codeEl.textContent = await generateTOTP(config);
-      } catch (err) {
-        codeEl.textContent = "Lỗi";
+        const config = parseInput(input.value);
+        renderMeta(config);
+        remainElement.textContent = config.period - (Math.floor(Date.now() / 1000) % config.period);
+        codeElement.textContent = await generateCode(config);
+        copyButton.disabled = false;
+        status.textContent = '';
+      } catch (error) {
+        codeElement.textContent = 'Lỗi'; copyButton.disabled = true; status.textContent = error.message;
       }
     }
 
-    input.addEventListener("input", update);
+    async function copyCode() {
+      const code = codeElement.textContent;
+      if (copyButton.disabled || !/^\d+$/.test(code)) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        status.textContent = 'Đã sao chép mã xác thực.';
+      } catch {
+        status.textContent = 'Không thể sao chép mã. Hãy thử lại trên HTTPS hoặc localhost.';
+      }
+    }
+
+    input.addEventListener('input', update);
+    copyButton.addEventListener('click', copyCode);
     setInterval(update, 1000);
     update();
   </script>

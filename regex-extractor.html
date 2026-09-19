@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .regex-settings { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px; margin-bottom: 18px; }
+    .copy-groups { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .copy-groups .button { padding: 8px 11px; }
+    @media (max-width: 480px) { .regex-settings { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-tool-name="Regex Match Extractor" data-tool-category="Văn bản" data-tool-description="Lấy tất cả kết quả khớp regex và sao chép từng nhóm capture theo dòng.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="regex-settings">
+        <div><label class="field-label" for="patternInput">Regex</label><input id="patternInput" type="text" spellcheck="false" placeholder="Ví dụ: (\w+)-(\d+)"></div>
+        <div><label class="field-label" for="flagsInput">Flags</label><input id="flagsInput" type="text" value="g" spellcheck="false" placeholder="gim"></div>
+      </div>
+      <label class="field-label" for="textInput">Văn bản đầu vào</label>
+      <textarea id="textInput" placeholder="Dán hoặc nhập văn bản cần tìm..."></textarea>
+      <div class="action-row"><button id="extractButton" class="button" type="button">Lấy kết quả</button><button id="copyMatchesButton" class="button button-secondary" type="button" disabled>Sao chép tất cả match</button></div>
+      <p id="status" class="status" role="status"></p>
+      <label class="field-label" for="matchesOutput">Kết quả khớp - mỗi dòng một match</label>
+      <textarea id="matchesOutput" readonly placeholder="Kết quả sẽ xuất hiện ở đây."></textarea>
+      <div id="groupSection" hidden>
+        <label class="field-label">Sao chép theo nhóm capture</label>
+        <div id="groupButtons" class="copy-groups"></div>
+      </div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const patternInput = document.getElementById('patternInput');
+    const flagsInput = document.getElementById('flagsInput');
+    const textInput = document.getElementById('textInput');
+    const matchesOutput = document.getElementById('matchesOutput');
+    const copyMatchesButton = document.getElementById('copyMatchesButton');
+    const groupSection = document.getElementById('groupSection');
+    const groupButtons = document.getElementById('groupButtons');
+    const status = document.getElementById('status');
+    let matches = [];
+
+    function captureCount(pattern) {
+      let count = 0;
+      let escaped = false;
+      let inCharacterClass = false;
+      for (let index = 0; index < pattern.length; index += 1) {
+        const character = pattern[index];
+        if (escaped) { escaped = false; continue; }
+        if (character === '\\') { escaped = true; continue; }
+        if (character === '[') { inCharacterClass = true; continue; }
+        if (character === ']') { inCharacterClass = false; continue; }
+        if (character !== '(' || inCharacterClass) continue;
+        if (pattern[index + 1] !== '?') { count += 1; continue; }
+        if (pattern[index + 2] === '<' && !['=', '!'].includes(pattern[index + 3])) count += 1;
+      }
+      return count;
+    }
+
+    function normalizeFlags(flags) {
+      const uniqueFlags = [...new Set(flags)];
+      if (uniqueFlags.length !== flags.length || !/^[dgimsuvy]*$/.test(flags)) throw new Error('Flags không hợp lệ. Chỉ dùng d, g, i, m, s, u, v hoặc y.');
+      return flags.includes('g') ? flags : `${flags}g`;
+    }
+
+    function createGroupButtons(groupCount) {
+      groupButtons.replaceChildren();
+      groupSection.hidden = groupCount === 0;
+      if (groupCount === 0) return;
+      const allGroupsButton = document.createElement('button');
+      allGroupsButton.className = 'button';
+      allGroupsButton.type = 'button';
+      allGroupsButton.disabled = matches.length === 0;
+      allGroupsButton.textContent = 'Sao chép tất cả capture';
+      allGroupsButton.addEventListener('click', copyAllGroups);
+      groupButtons.append(allGroupsButton);
+      for (let index = 1; index <= groupCount; index += 1) {
+        const button = document.createElement('button');
+        button.className = 'button button-secondary';
+        button.type = 'button';
+        button.disabled = matches.length === 0;
+        button.textContent = `Sao chép $${index}`;
+        button.addEventListener('click', () => copyGroup(index));
+        groupButtons.append(button);
+      }
+    }
+
+    function extractMatches() {
+      const pattern = patternInput.value;
+      matches = [];
+      matchesOutput.value = '';
+      copyMatchesButton.disabled = true;
+      groupSection.hidden = true;
+      if (!pattern) { status.textContent = 'Nhập regex để bắt đầu.'; return; }
+      try {
+        const expression = new RegExp(pattern, normalizeFlags(flagsInput.value));
+        let match;
+        while ((match = expression.exec(textInput.value)) !== null) {
+          matches.push([...match]);
+          if (match[0] === '') expression.lastIndex += 1;
+        }
+        matchesOutput.value = matches.map(match => match[0]).join('\n');
+        copyMatchesButton.disabled = matches.length === 0;
+        createGroupButtons(captureCount(pattern));
+        status.textContent = matches.length ? `Tìm thấy ${matches.length} match.` : 'Không tìm thấy match nào.';
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function copyText(value, message) {
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        status.textContent = message;
+      } catch {
+        status.textContent = 'Không thể sao chép. Hãy thử lại trên HTTPS hoặc localhost.';
+      }
+    }
+
+    function copyGroup(index) {
+      copyText(matches.map(match => match[index] || '').join('\n'), `Đã sao chép $${index}.`);
+    }
+
+    function copyAllGroups() {
+      const values = matches.map(match => match.slice(1).map(value => value || '').join('\t'));
+      copyText(values.join('\n'), 'Đã sao chép tất cả capture.');
+    }
+
+    document.getElementById('extractButton').addEventListener('click', extractMatches);
+    copyMatchesButton.addEventListener('click', () => copyText(matchesOutput.value, 'Đã sao chép tất cả match.'));
+    [patternInput, flagsInput, textInput].forEach(input => input.addEventListener('input', extractMatches));
+  </script>
+</body>
+</html>

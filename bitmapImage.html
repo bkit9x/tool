@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+</head>
+<body data-tool-name="Image Re-encoder" data-tool-category="Hình ảnh" data-tool-description="Đọc lại ảnh trong trình duyệt và xuất thành PNG mới.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <input id="fileInput" type="file" accept="image/*" hidden>
+      <div id="dropZone" class="drop-zone" role="button" tabindex="0"><div><strong>Chọn hoặc thả ảnh vào đây</strong><br><small>Cũng có thể dán ảnh từ clipboard bằng Ctrl/Cmd + V</small></div></div>
+      <div class="action-row"><button id="downloadButton" class="button" type="button" disabled>Tải PNG</button><button id="copyButton" class="button button-secondary" type="button" disabled>Sao chép ảnh</button></div>
+      <p id="status" class="status" role="status">Chưa có ảnh.</p>
+      <div class="preview"><canvas id="canvas"></canvas></div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const downloadButton = document.getElementById('downloadButton');
+    const copyButton = document.getElementById('copyButton');
+    const status = document.getElementById('status');
+    let hasImage = false;
+
+    async function processImage(file) {
+      if (!file || !file.type.startsWith('image/')) { status.textContent = 'Vui lòng chọn một tệp ảnh.'; return; }
+      try {
+        const bitmap = await createImageBitmap(file);
+        canvas.width = bitmap.width; canvas.height = bitmap.height;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0); bitmap.close();
+        hasImage = true; downloadButton.disabled = false; copyButton.disabled = false;
+        status.textContent = `${file.name || 'Ảnh từ clipboard'} - ${canvas.width} x ${canvas.height}px`;
+      } catch { status.textContent = 'Không thể đọc ảnh này.'; }
+    }
+
+    function canvasToBlob() {
+      return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Không thể tạo PNG.')), 'image/png'));
+    }
+
+    async function downloadImage() {
+      if (!hasImage) return;
+      try {
+        const url = URL.createObjectURL(await canvasToBlob());
+        const link = Object.assign(document.createElement('a'), { href: url, download: 'reencoded-image.png' });
+        link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (error) { status.textContent = error.message; }
+    }
+
+    async function copyImage() {
+      if (!hasImage) return;
+      try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': await canvasToBlob() })]); status.textContent = 'Đã sao chép ảnh PNG.'; }
+      catch { status.textContent = 'Không thể sao chép. Clipboard API cần HTTPS hoặc localhost.'; }
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
+    fileInput.addEventListener('change', () => processImage(fileInput.files[0]));
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('is-dragging'); }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
+    dropZone.addEventListener('drop', event => processImage(event.dataTransfer.files[0]));
+    document.addEventListener('paste', event => { const item = [...(event.clipboardData?.items || [])].find(current => current.type.startsWith('image/')); if (item) processImage(item.getAsFile()); });
+    downloadButton.addEventListener('click', downloadImage);
+    copyButton.addEventListener('click', copyImage);
+  </script>
+</body>
+</html>

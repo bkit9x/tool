@@ -1,84 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>Decode HTML Entity tiếng Việt</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 180px;
-            padding: 12px;
-            box-sizing: border-box;
-            font-family: Consolas, monospace;
-            font-size: 15px;
-            margin-bottom: 15px;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 15px;
-            cursor: pointer;
-            margin-right: 8px;
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
 </head>
+<body data-tool-name="HTML Entity Decoder" data-tool-category="Văn bản" data-tool-description="Giải mã HTML entity thành văn bản tiếng Việt dễ đọc.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <label class="field-label" for="input">Chuỗi đã mã hóa</label>
+      <textarea id="input" placeholder="Ví dụ: Ch&#7885;n / b&#7887; t&#7845;t c&#7843; kết quả"></textarea>
+      <div class="action-row"><button id="decodeButton" class="button" type="button">Giải mã</button><button id="copyButton" class="button button-secondary" type="button">Sao chép kết quả</button></div>
+      <p id="status" class="status" role="status"></p>
+      <label class="field-label" for="output">Kết quả</label>
+      <textarea id="output" readonly placeholder="Kết quả sẽ xuất hiện ở đây."></textarea>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
 
-<body>
-
-<h2>Decode HTML Entity → Tiếng Việt</h2>
-
-<label for="input">Chuỗi bị mã hóa:</label>
-
-<textarea id="input" placeholder="Ví dụ:
-Ch&#7885;n / b&#7887; t&#7845;t c&#7843; k&#7871;t qu&#7843; t&#236;m ki&#7871;m' : 'Ch&#7885;n / b&#7887; t&#7845;t c&#7843; nh&#243;m"></textarea>
-
-<button onclick="decodeText()">Chuyển đổi</button>
-<button onclick="copyResult()">Copy kết quả</button>
-
-<label for="output">Kết quả:</label>
-
-<textarea id="output" readonly></textarea>
-
-<script>
-    function decodeHtmlEntities(text) {
-        const textarea = document.createElement("textarea");
-        textarea.innerHTML = text;
-        return textarea.value;
+    function decodeEntities(value) {
+      const decoder = document.createElement('textarea');
+      decoder.innerHTML = value;
+      return decoder.value;
     }
 
     function decodeText() {
-        const input = document.getElementById("input").value;
-        const output = decodeHtmlEntities(input);
-
-        document.getElementById("output").value = output;
+      output.value = decodeEntities(input.value);
+      status.textContent = input.value ? 'Đã giải mã nội dung.' : '';
     }
 
     async function copyResult() {
-        const output = document.getElementById("output").value;
-
-        await navigator.clipboard.writeText(output);
-
-        alert("Đã copy kết quả!");
+      if (!output.value) return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        status.textContent = 'Đã sao chép kết quả.';
+      } catch {
+        output.focus();
+        output.select();
+        status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.';
+      }
     }
 
-    // Tự động decode ngay khi nhập/dán
-    document.getElementById("input").addEventListener("input", decodeText);
-</script>
-
+    input.addEventListener('input', decodeText);
+    document.getElementById('decodeButton').addEventListener('click', decodeText);
+    document.getElementById('copyButton').addEventListener('click', copyResult);
+  </script>
 </body>
 </html>
