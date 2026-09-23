@@ -54,6 +54,24 @@
     "keywords": ["text", "uppercase", "lowercase", "title case", "clean", "remove special characters"]
   },
   {
+    "id": "alphabet-sorter",
+    "name": "Alphabet Sorter",
+    "description": "Tách, bỏ khoảng trắng, sắp xếp chữ hoặc số rồi nối lại bằng ký tự phân cách tùy chọn.",
+    "path": "alphabet-sorter.html",
+    "category": "Văn bản",
+    "icon": "sort",
+    "keywords": ["alphabet", "sort", "a-z", "z-a", "sắp xếp", "ký tự phân cách", "delimiter"]
+  },
+  {
+    "id": "status-grouping",
+    "name": "Status Grouping",
+    "description": "Gom đơn vị theo ba nhóm tiến độ, cảnh báo trạng thái không phù hợp và sắp xếp theo chữ cái.",
+    "path": "status-grouping.html",
+    "category": "Văn bản",
+    "icon": "group",
+    "keywords": ["status", "group", "progress", "trạng thái", "đơn vị", "đã hoàn thành", "đang thực hiện"]
+  },
+  {
     "id": "encoder-decoder",
     "name": "Encode / Decode",
     "description": "Mã hóa và giải mã văn bản bằng Base64, URL, HTML, Hex, Unicode, JSON và ROT13.",

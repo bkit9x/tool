@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .source-editor { min-height: 230px; }
+    .result-editor { min-height: 310px; }
+    .result-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-top: 26px; }
+    .result-heading .field-label { margin-bottom: 9px; }
+    .summary { margin-bottom: 9px; color: var(--muted); font-family: Consolas, monospace; font-size: .78rem; }
+    .warning-panel { display: none; margin-top: 18px; padding: 15px 17px; border: 1px solid color-mix(in srgb, var(--danger) 62%, var(--line)); border-radius: 10px; background: color-mix(in srgb, var(--danger) 8%, transparent); }
+    .warning-panel.is-visible { display: block; }
+    .warning-panel h2 { margin: 0 0 8px; color: var(--danger); font-size: .92rem; }
+    .warning-panel ul { margin: 0; padding-left: 20px; color: var(--text); font-size: .86rem; line-height: 1.55; }
+    .criteria { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+    .criteria article { padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--meta); }
+    .criteria h2 { margin: 0 0 7px; color: var(--mint); font-size: .86rem; }
+    .criteria p { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.45; }
+    @media (max-width: 760px) { .criteria { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-tool-name="Status Grouping" data-tool-category="Văn bản" data-tool-description="Gom danh sách đơn vị về ba nhóm tiến độ, cảnh báo trạng thái không phù hợp và sắp xếp theo chữ cái.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <label class="field-label" for="sourceText">Nội dung báo cáo</label>
+      <textarea id="sourceText" class="source-editor" placeholder="Dán các khối trạng thái và danh sách đơn vị vào đây..."></textarea>
+
+      <div class="criteria" aria-label="Tiêu chí gom nhóm">
+        <article><h2>1. Đã hoàn thành</h2><p>Thường xuyên đã báo cáo; Hoàn thành đúng hạn; Hoàn thành quá hạn; Đã hoàn thành - Chưa xác định.</p></article>
+        <article><h2>2. Chưa hoàn thành</h2><p>Đang thực hiện quá hạn.</p></article>
+        <article><h2>3. Đang thực hiện</h2><p>Thường xuyên chưa báo cáo; Đang thực hiện đúng hạn; Đang thực hiện sắp đến hạn; Đang thực hiện - Sắp tới hạn.</p></article>
+      </div>
+
+      <div class="action-row">
+        <button id="groupButton" class="button" type="button">Nhóm và sắp xếp</button>
+        <button id="sampleButton" class="button button-secondary" type="button">Nạp dữ liệu mẫu</button>
+        <button id="clearButton" class="button button-secondary" type="button">Xóa</button>
+      </div>
+      <p id="status" class="status" role="status">Tên đơn vị trong từng nhóm sẽ được sắp xếp theo bảng chữ cái tiếng Việt.</p>
+
+      <section id="warningPanel" class="warning-panel" aria-labelledby="warningTitle" aria-live="polite">
+        <h2 id="warningTitle">Cảnh báo dữ liệu</h2>
+        <ul id="warningList"></ul>
+      </section>
+
+      <div class="result-heading">
+        <label class="field-label" for="resultText">Kết quả đã nhóm</label>
+        <span id="summary" class="summary"></span>
+      </div>
+      <textarea id="resultText" class="result-editor" readonly placeholder="Kết quả sẽ xuất hiện ở đây."></textarea>
+      <div class="action-row"><button id="copyButton" class="button" type="button" disabled>Sao chép kết quả</button></div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const sampleText = 'Đã hoàn thành - Đúng hạn (1 đơn vị): Sở Khoa học và Công nghệ Đang thực hiện - Đúng hạn (18 đơn vị): Ban Quản lý Khu kinh tế, Báo, phát thanh và truyền hình Vĩnh Long, Công an tỉnh, Đoàn đại biểu Quốc hội và Hội đồng nhân dân tỉnh, Sở Công thương, Sở Dân tộc và Tôn giáo, Sở Giáo dục và Đào tạo, Sở Nội vụ, Sở Nông nghiệp và Môi trường, Sở Tài Chính, Sở Tư pháp, Sở Văn hoá, Thể thao và Du lịch, Sở Xây dựng, Sở Y tế, Thanh tra tỉnh, Ủy ban Mặt trận Tổ quốc Việt Nam tỉnh, Văn phòng tỉnh uỷ, Văn phòng Ủy ban nhân dân tỉnh';
+    const sourceText = document.getElementById('sourceText');
+    const resultText = document.getElementById('resultText');
+    const status = document.getElementById('status');
+    const summary = document.getElementById('summary');
+    const warningPanel = document.getElementById('warningPanel');
+    const warningList = document.getElementById('warningList');
+    const copyButton = document.getElementById('copyButton');
+
+    const groupDefinitions = [
+      { id: 'completed', title: 'Đã hoàn thành' },
+      { id: 'incomplete', title: 'Chưa hoàn thành' },
+      { id: 'inProgress', title: 'Đang thực hiện' }
+    ];
+
+    const statusGroups = new Map([
+      ['thuong xuyen da bao cao', 'completed'],
+      ['hoan thanh dung han', 'completed'],
+      ['hoan thanh qua han', 'completed'],
+      ['hoan thanh chua xac dinh', 'completed'],
+      ['dang thuc hien qua han', 'incomplete'],
+      ['thuong xuyen chua bao cao', 'inProgress'],
+      ['dang thuc hien dung han', 'inProgress'],
+      ['dang thuc hien sap den han', 'inProgress'],
+      ['dang thuc hien sap toi han', 'inProgress']
+    ]);
+
+    function normalizeStatus(value) {
+      return value.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLocaleLowerCase('vi')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/^da hoan thanh\b/, 'hoan thanh');
+    }
+
+    const protectedCommaToken = '__STATUS_GROUPING_COMMA__';
+    const protectedUnitNames = [
+      'Báo, phát thanh và truyền hình Vĩnh Long',
+      'Sở Văn hoá, Thể thao và Du lịch'
+    ];
+
+    function protectKnownUnitNames(value) {
+      return protectedUnitNames.reduce((result, unitName) => {
+        return result.replaceAll(unitName, unitName.replace(', ', protectedCommaToken));
+      }, value);
+    }
+
+    function cleanUnit(value) {
+      return value.trim()
+        .replace(/^["“”]+|["“”]+$/gu, '')
+        .trim()
+        .replace(/[.;]+$/u, '')
+        .replaceAll(protectedCommaToken, ', ');
+    }
+
+    function splitUnits(content) {
+      const protectedContent = protectKnownUnitNames(content.trim());
+      if (!protectedContent) return [];
+      return protectedContent.split(/\r?\n+|;\s*|\s*,\s*/u).map(cleanUnit).filter(Boolean);
+    }
+
+    function parseBlocks(value) {
+      const headerPattern = /((?:Thường\s+xuyên|(?:Đã\s+)?Hoàn\s+thành|Đang\s+thực\s+hiện)[^():]{0,80}?)\s*\(\s*(\d+)\s*đơn\s+vị\s*\)\s*:/giu;
+      const matches = [...value.matchAll(headerPattern)];
+      return matches.map((match, index) => {
+        const contentStart = match.index + match[0].length;
+        const contentEnd = index + 1 < matches.length ? matches[index + 1].index : value.length;
+        const declaredCount = Number(match[2]);
+        return {
+          status: match[1].trim().replace(/\s+/g, ' '),
+          declaredCount,
+          units: splitUnits(value.slice(contentStart, contentEnd))
+        };
+      });
+    }
+
+    function renderWarnings(warnings) {
+      warningList.replaceChildren(...warnings.map(message => {
+        const item = document.createElement('li');
+        item.textContent = message;
+        return item;
+      }));
+      warningPanel.classList.toggle('is-visible', warnings.length > 0);
+    }
+
+    function groupContent() {
+      const value = sourceText.value.trim();
+      if (!value) {
+        resultText.value = '';
+        summary.textContent = '';
+        copyButton.disabled = true;
+        renderWarnings([]);
+        status.textContent = 'Hãy nhập nội dung báo cáo cần xử lý.';
+        return;
+      }
+
+      const blocks = parseBlocks(value);
+      const groups = Object.fromEntries(groupDefinitions.map(group => [group.id, []]));
+      const warnings = [];
+      const unknownBlocks = [];
+      const seenUnits = new Map();
+      const countMarkers = value.match(/\(\s*\d+\s*đơn\s+vị\s*\)\s*:/giu) || [];
+
+      if (!blocks.length) warnings.push('Không tìm thấy khối dữ liệu theo mẫu “Trạng thái (số đơn vị): danh sách”.');
+      if (countMarkers.length > blocks.length) warnings.push(`Có ${countMarkers.length - blocks.length} tiêu đề không nhận diện được cấu trúc trạng thái.`);
+
+      blocks.forEach(block => {
+        const normalizedStatus = normalizeStatus(block.status);
+        const groupId = statusGroups.get(normalizedStatus);
+        if (block.units.length !== block.declaredCount) {
+          warnings.push(`“${block.status}” khai báo ${block.declaredCount} đơn vị nhưng đọc được ${block.units.length}.`);
+        }
+        if (!groupId) {
+          warnings.push(`Trạng thái không phù hợp tiêu chí: “${block.status}”.`);
+          unknownBlocks.push(block);
+          return;
+        }
+        block.units.forEach(unit => {
+          const unitKey = unit.toLocaleLowerCase('vi').replace(/\s+/g, ' ');
+          if (seenUnits.has(unitKey)) warnings.push(`Đơn vị xuất hiện nhiều lần: “${unit}”.`);
+          else seenUnits.set(unitKey, groupId);
+          groups[groupId].push(unit);
+        });
+      });
+
+      const compareUnits = (left, right) => left.localeCompare(right, 'vi', { sensitivity: 'base', numeric: true });
+      const sections = groupDefinitions
+        .filter(group => groups[group.id].length > 0)
+        .map(group => {
+          groups[group.id].sort(compareUnits);
+          return `${group.title} (${groups[group.id].length} đơn vị): ${groups[group.id].join(', ')}`;
+        });
+
+      if (unknownBlocks.length) {
+        const unknownUnits = unknownBlocks.flatMap(block => block.units).sort(compareUnits);
+        if (unknownUnits.length) sections.push(`Không phù hợp tiêu chí (${unknownUnits.length} đơn vị): ${unknownUnits.join(', ')}`);
+      }
+
+      const totalUnits = groupDefinitions.reduce((total, group) => total + groups[group.id].length, 0);
+      resultText.value = sections.join('\n');
+      summary.textContent = `${totalUnits} đơn vị · ${blocks.length} trạng thái`;
+      copyButton.disabled = !resultText.value;
+      renderWarnings(warnings);
+      status.textContent = warnings.length ? `Đã nhóm dữ liệu, có ${warnings.length} cảnh báo cần kiểm tra.` : 'Đã nhóm và sắp xếp tên đơn vị theo chữ cái.';
+    }
+
+    async function copyResult() {
+      if (!resultText.value) return;
+      try {
+        await navigator.clipboard.writeText(resultText.value);
+        status.textContent = 'Đã sao chép kết quả.';
+      } catch {
+        resultText.focus();
+        resultText.select();
+        status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.';
+      }
+    }
+
+    function clearAll() {
+      sourceText.value = '';
+      resultText.value = '';
+      summary.textContent = '';
+      copyButton.disabled = true;
+      renderWarnings([]);
+      status.textContent = 'Tên đơn vị trong từng nhóm sẽ được sắp xếp theo bảng chữ cái tiếng Việt.';
+      sourceText.focus();
+    }
+
+    document.getElementById('groupButton').addEventListener('click', groupContent);
+    document.getElementById('sampleButton').addEventListener('click', () => {
+      sourceText.value = sampleText;
+      groupContent();
+    });
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+    copyButton.addEventListener('click', copyResult);
+    sourceText.addEventListener('change', groupContent);
+    sourceText.addEventListener('keydown', event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') groupContent();
+    });
+  </script>
+</body>
+</html>
