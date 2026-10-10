@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    :root { --period: #e8507a; --fertile: #3cc8a4; --ovulation: #f5b83d; }
+    input[type="password"], input[type="date"], input[type="number"] { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; outline: none; color: var(--text); background: var(--input); }
+    input[type="password"]:focus, input[type="date"]:focus, input[type="number"]:focus { border-color: var(--mint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 16%, transparent); }
+    .lock-card { max-width: 460px; margin: 0 auto; }
+    .lock-card h2 { margin: 6px 0 4px; text-align: center; }
+    .lock-icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 8px; border: 1px solid var(--line); border-radius: 18px; background: var(--meta); font-size: 1.9rem; }
+    .lock-hint { margin: 0 0 18px; color: var(--muted); font-size: .9rem; line-height: 1.5; text-align: center; }
+    .stack { display: grid; gap: 12px; }
+    .link-button { margin-top: 14px; padding: 0; border: 0; background: none; color: var(--danger); font-size: .84rem; text-decoration: underline; }
+    .app-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; color: var(--muted); font-size: .88rem; }
+    .section-title { margin: 0 0 14px; font-size: 1.15rem; letter-spacing: -.02em; }
+    .section-note { margin: -8px 0 14px; color: var(--muted); font-size: .86rem; line-height: 1.5; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .stat { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--meta); }
+    .stat-label { color: var(--muted); font-size: .74rem; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; }
+    .stat-value { margin-top: 6px; color: var(--mint); font-family: Georgia, serif; font-size: 1.65rem; font-weight: bold; letter-spacing: -.03em; }
+    .stat-sub { margin-top: 4px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .confidence-bar { height: 6px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: var(--surface-raised); }
+    .confidence-bar span { display: block; width: 0; height: 100%; background: var(--mint); transition: width .3s; }
+    .phase-banner { margin-top: 16px; padding: 12px 14px; border-left: 4px solid var(--period); border-radius: 10px; background: color-mix(in srgb, var(--period) 10%, transparent); line-height: 1.5; }
+    .phase-banner strong { display: block; }
+    .phase-banner span { color: var(--muted); font-size: .88rem; }
+    .quick-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .app-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 20px; }
+    .block { margin-top: 20px; }
+    .calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .calendar-head strong { font-size: 1.05rem; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+    .weekday { padding: 4px 0; color: var(--muted); font-size: .74rem; font-weight: bold; text-align: center; }
+    .day { position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: 9px; background: var(--meta); color: var(--text); font-size: .9rem; }
+    .day:hover { border-color: var(--mint); }
+    .day.outside { opacity: .38; }
+    .day.fertile { background: color-mix(in srgb, var(--fertile) 28%, var(--meta)); }
+    .day.predicted { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--period) 48%, var(--meta)) 0 5px, color-mix(in srgb, var(--period) 18%, var(--meta)) 5px 10px); }
+    .day.period { background: var(--period); color: #fff; font-weight: bold; }
+    .day.ovulation::after { content: ""; position: absolute; bottom: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--ovulation); }
+    .day.today { border-color: var(--text); font-weight: bold; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; color: var(--muted); font-size: .8rem; }
+    .legend i { display: inline-block; width: 12px; height: 12px; margin-right: 5px; border-radius: 4px; vertical-align: -2px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full { grid-column: 1 / -1; }
+    .table-wrap { overflow-x: auto; }
+    .tag { display: inline-block; padding: 2px 7px; border-radius: 99px; background: var(--surface-raised); color: var(--muted); font-size: .72rem; white-space: nowrap; }
+    .tag.warn { color: var(--danger); }
+    .mini-button { padding: 5px 9px; font-size: .8rem; }
+    .row-actions { display: flex; gap: 6px; }
+    .note-cell { max-width: 220px; overflow-wrap: anywhere; color: var(--muted); }
+    .chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; margin-top: 24px; padding-top: 18px; border-bottom: 1px solid var(--line); }
+    .chart-empty { align-self: center; width: 100%; color: var(--muted); font-size: .86rem; text-align: center; }
+    .bar { position: relative; flex: 1; min-width: 8px; max-width: 46px; border-radius: 5px 5px 0 0; background: var(--mint); }
+    .bar.excluded { background: var(--line); }
+    .bar span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: var(--muted); font-size: .7rem; }
+    .insight-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tip { margin: 16px 0 0; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: .88rem; line-height: 1.55; }
+    .settings-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .divider { height: 1px; margin: 24px 0; background: var(--line); }
+    .button-danger { border-color: var(--danger); background: transparent; color: var(--danger); }
+    .disclaimer { margin-top: 20px; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+    [hidden] { display: none !important; }
+    @media (max-width: 900px) { .app-grid { grid-template-columns: 1fr; } .stat-grid, .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .stat-grid, .form-grid, .settings-grid, .insight-grid { grid-template-columns: 1fr; } .day { font-size: .8rem; border-radius: 7px; } }
+  </style>
+</head>
+<body data-tool-name="Cycle Keeper" data-tool-category="Sức khỏe" data-tool-description="Theo dõi chu kỳ kinh nguyệt, dự đoán kỳ tiếp theo và cửa sổ dễ thụ thai. Dữ liệu được mã hóa bằng mật khẩu và chỉ lưu trên trình duyệt này.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+
+    <!-- Màn hình khóa -->
+    <section id="lockView" class="tool-card lock-card">
+      <form id="lockForm" class="stack" autocomplete="off">
+        <div>
+          <div class="lock-icon" aria-hidden="true">🔒</div>
+          <h2 id="lockTitle">Mở khóa</h2>
+        </div>
+        <p id="lockHint" class="lock-hint"></p>
+        <div>
+          <label class="field-label" for="passwordInput">Mật khẩu</label>
+          <input id="passwordInput" type="password" autocomplete="current-password" required>
+        </div>
+        <div id="confirmWrap" hidden>
+          <label class="field-label" for="confirmInput">Nhập lại mật khẩu</label>
+          <input id="confirmInput" type="password" autocomplete="new-password">
+        </div>
+        <button id="lockSubmit" class="button" type="submit">Mở khóa</button>
+        <p id="lockStatus" class="status" role="status"></p>
+      </form>
+      <div style="text-align:center"><button id="resetVaultButton" class="link-button" type="button" hidden>Quên mật khẩu? Xóa toàn bộ dữ liệu</button></div>
+    </section>
+
+    <!-- Ứng dụng -->
+    <div id="appView" hidden>
+      <div class="app-toolbar">
+        <span>🔓 Đã mở khóa · tự khóa sau <strong id="autoLockLabel">5</strong> phút không thao tác</span>
+        <button id="lockNowButton" class="button button-secondary" type="button">🔒 Khóa ngay</button>
+      </div>
+
+      <section class="tool-card">
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-label">Chu kỳ hiện tại</div><div id="statCycleDay" class="stat-value">—</div><div id="statCycleDaySub" class="stat-sub"></div></div>
+          <div class="stat"><div class="stat-label">Kỳ tiếp theo</div><div id="statNext" class="stat-value">—</div><div id="statNextSub" class="stat-sub"></div></div>
+          <div class="stat"><div class="stat-label">Rụng trứng dự kiến</div><div id="statOvulation" class="stat-value">—</div><div id="statOvulationSub" class="stat-sub"></div></div>
+          <div class="stat"><div class="stat-label">Độ tin cậy</div><div id="statConfidence" class="stat-value">—</div><div id="statConfidenceSub" class="stat-sub"></div><div class="confidence-bar"><span id="confidenceBar"></span></div></div>
+        </div>
+        <div id="phaseBanner" class="phase-banner"></div>
+        <div class="quick-row">
+          <button id="startTodayButton" class="button" type="button">🩸 Bắt đầu kỳ hôm nay</button>
+          <button id="endTodayButton" class="button button-secondary" type="button">✓ Kết thúc kỳ hôm nay</button>
+        </div>
+        <p id="quickStatus" class="status" role="status"></p>
+      </section>
+
+      <div class="app-grid">
+        <section class="tool-card">
+          <div class="calendar-head">
+            <button id="prevMonth" class="button button-secondary mini-button" type="button" aria-label="Tháng trước">‹</button>
+            <strong id="calendarTitle"></strong>
+            <div class="row-actions">
+              <button id="todayMonth" class="button button-secondary mini-button" type="button">Hôm nay</button>
+              <button id="nextMonth" class="button button-secondary mini-button" type="button" aria-label="Tháng sau">›</button>
+            </div>
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+          <div class="legend">
+            <span><i style="background:var(--period)"></i>Hành kinh</span>
+            <span><i style="background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--period) 60%,transparent) 0 3px,transparent 3px 6px)"></i>Dự đoán</span>
+            <span><i style="background:color-mix(in srgb,var(--fertile) 45%,transparent)"></i>Dễ thụ thai</span>
+            <span><i style="background:var(--ovulation);border-radius:50%"></i>Rụng trứng</span>
+          </div>
+        </section>
+
+        <section class="tool-card">
+          <h2 id="formTitle" class="section-title">Ghi kỳ kinh</h2>
+          <p class="section-note">Mẹo: bấm vào lịch để điền nhanh — lần 1 là ngày bắt đầu, lần 2 là ngày kết thúc.</p>
+          <form id="periodForm" class="form-grid">
+            <div><label class="field-label" for="startInput">Ngày bắt đầu</label><input id="startInput" type="date" required></div>
+            <div><label class="field-label" for="endInput">Ngày kết thúc (tùy chọn)</label><input id="endInput" type="date"></div>
+            <div class="full"><label class="field-label" for="noteInput">Ghi chú</label><input id="noteInput" type="text" maxlength="200" placeholder="Ví dụ: đau bụng nhẹ, ra nhiều…" autocomplete="off"></div>
+            <div class="full action-row" style="margin-top:0">
+              <button id="periodSubmit" class="button" type="submit">Thêm kỳ</button>
+              <button id="cancelEdit" class="button button-secondary" type="button" hidden>Hủy sửa</button>
+            </div>
+          </form>
+          <p id="formStatus" class="status" role="status"></p>
+        </section>
+      </div>
+
+      <section class="tool-card block">
+        <h2 class="section-title">Mô hình dự đoán</h2>
+        <p class="section-note">Kết hợp giá trị mặc định với chu kỳ thực tế của bạn. Chu kỳ gần đây có trọng số cao hơn, chu kỳ bất thường bị loại. Theo dõi càng lâu, dữ liệu cá nhân càng chiếm ưu thế và khoảng sai số càng hẹp.</p>
+        <div id="insightGrid" class="meta-grid insight-grid"></div>
+        <div id="cycleChart" class="chart"></div>
+        <p id="insightTip" class="tip"></p>
+      </section>
+
+      <section class="tool-card block">
+        <h2 class="section-title">Lịch sử</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Hành kinh</th><th>Độ dài chu kỳ</th><th>Ghi chú</th><th></th></tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tool-card block">
+        <h2 class="section-title">Cài đặt</h2>
+        <form id="settingsForm">
+          <div class="settings-grid">
+            <div><label class="field-label" for="setCycle">Chu kỳ mặc định (ngày)</label><input id="setCycle" type="number" min="20" max="45" required></div>
+            <div><label class="field-label" for="setPeriod">Số ngày hành kinh mặc định</label><input id="setPeriod" type="number" min="2" max="10" required></div>
+            <div><label class="field-label" for="setLuteal">Pha hoàng thể (ngày)</label><input id="setLuteal" type="number" min="10" max="16" required></div>
+            <div><label class="field-label" for="setAutoLock">Tự khóa sau (phút)</label><input id="setAutoLock" type="number" min="1" max="60" required></div>
+          </div>
+          <div class="action-row"><button class="button" type="submit">Lưu cài đặt</button></div>
+          <p id="settingsStatus" class="status" role="status"></p>
+        </form>
+
+        <div class="divider"></div>
+        <h2 class="section-title">Đổi mật khẩu</h2>
+        <form id="passwordForm" class="settings-grid" autocomplete="off">
+          <div><label class="field-label" for="currentPassword">Mật khẩu hiện tại</label><input id="currentPassword" type="password" autocomplete="current-password" required></div>
+          <div><label class="field-label" for="newPassword">Mật khẩu mới</label><input id="newPassword" type="password" autocomplete="new-password" required></div>
+          <div><label class="field-label" for="newPasswordConfirm">Nhập lại mật khẩu mới</label><input id="newPasswordConfirm" type="password" autocomplete="new-password" required></div>
+          <div style="align-self:end"><button class="button" type="submit" style="width:100%">Đổi mật khẩu</button></div>
+        </form>
+        <p id="passwordStatus" class="status" role="status"></p>
+
+        <div class="divider"></div>
+        <h2 class="section-title">Sao lưu &amp; dữ liệu</h2>
+        <p class="section-note">Bản sao lưu vẫn được mã hóa, cần đúng mật khẩu lúc xuất để mở lại.</p>
+        <div class="action-row">
+          <button id="exportButton" class="button button-secondary" type="button">⬇ Xuất bản sao lưu</button>
+          <button id="importButton" class="button button-secondary" type="button">⬆ Nhập bản sao lưu</button>
+          <input id="importFile" type="file" accept=".json,application/json" hidden>
+          <button id="wipeButton" class="button button-danger" type="button">Xóa toàn bộ dữ liệu</button>
+        </div>
+        <p id="dataStatus" class="status" role="status"></p>
+      </section>
+
+      <p class="disclaimer">⚠️ Kết quả chỉ mang tính tham khảo, không thay thế tư vấn y khoa và không nên dùng làm biện pháp tránh thai. Dữ liệu chỉ nằm trên trình duyệt này, được mã hóa AES-GCM 256-bit với khóa dẫn xuất từ mật khẩu (PBKDF2-SHA256); quên mật khẩu đồng nghĩa mất dữ liệu.</p>
+    </div>
+  </main>
+
+  <script src="tool-shell.js"></script>
+  <script>  (() => {
+    'use strict';
+
+    const VAULT_KEY = 'cycle-keeper-vault-v1';
+    const LOCKOUT_KEY = 'cycle-keeper-lockout';
+    const ITERATIONS = 310000;
+    const DAY_MS = 864e5;
+    const PRIOR_WEIGHT = 2;      // Giá trị mặc định có sức nặng tương đương ~2 chu kỳ dữ liệu
+    const RECENCY_DECAY = 0.85;  // Chu kỳ càng cũ, trọng số càng giảm
+    const MAX_HISTORY = 12;      // Chỉ học từ 12 chu kỳ hợp lệ gần nhất
+    const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5, lutealLength: 14, autoLockMinutes: 5 };
+
+    const $ = id => document.getElementById(id);
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+
+    let session = null;   // { key, salt, iterations } — chỉ giữ trong bộ nhớ
+    let state = null;     // { version, settings, periods }
+    let analysis = null;
+    let editingId = null;
+    let viewMonth = null;
+    let lastActivity = Date.now();
+    let failedAttempts = 0;
+    let busy = false;
+    let saveChain = Promise.resolve();
+
+    /* ---------- Tiện ích ngày (đếm theo số ngày UTC để tránh lệch múi giờ) ---------- */
+    const toDay = iso => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / DAY_MS); };
+    const toIso = day => new Date(day * DAY_MS).toISOString().slice(0, 10);
+    const today = () => { const d = new Date(); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); };
+    const fmtFull = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+    const fmt = day => fmtFull.format(new Date(day * DAY_MS));
+    const fmtS = day => toIso(day).slice(5).split('-').reverse().join('/');
+    const isIso = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && toIso(toDay(v)) === v;
+    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+    const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const makeId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+    /* ---------- Mã hóa: PBKDF2-SHA256 -> AES-GCM 256 ---------- */
+    function toB64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let s = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return btoa(s);
+    }
+    function fromB64(str) {
+      const s = atob(str);
+      const bytes = new Uint8Array(s.length);
+      for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+      return bytes;
+    }
+    async function deriveKey(password, salt, iterations) {
+      const base = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    }
+    async function decryptVault(vault, key) {
+      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(vault.iv) }, key, fromB64(vault.data));
+      return JSON.parse(dec.decode(plain));
+    }
+    function isValidVault(v) {
+      return !!v && v.app === 'cycle-keeper' && typeof v.salt === 'string' && typeof v.iv === 'string' && typeof v.data === 'string'
+        && Number.isInteger(v.iterations) && v.iterations >= 100000 && v.iterations <= 5000000;
+    }
+    function readVault() {
+      try {
+        const vault = JSON.parse(localStorage.getItem(VAULT_KEY) || 'null');
+        return isValidVault(vault) ? vault : null;
+      } catch { return null; }
+    }
+    function save() {
+      const snapshot = JSON.stringify(state);
+      const current = session;
+      saveChain = saveChain.then(async () => {
+        if (!current) return;
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, current.key, enc.encode(snapshot));
+        localStorage.setItem(VAULT_KEY, JSON.stringify({
+          app: 'cycle-keeper', version: 1, kdf: 'PBKDF2-SHA256', cipher: 'AES-GCM-256',
+          iterations: current.iterations, salt: toB64(current.salt), iv: toB64(iv), data: toB64(data)
+        }));
+      }).catch(() => { $('dataStatus').textContent = 'Không thể lưu dữ liệu (bộ nhớ trình duyệt đầy hoặc bị chặn).'; });
+      return saveChain;
+    }
+
+    function normalizeState(raw) {
+      const src = raw && typeof raw === 'object' ? raw : {};
+      const s = { ...DEFAULT_SETTINGS, ...(src.settings || {}) };
+      const int = (v, min, max, d) => Number.isInteger(v) && v >= min && v <= max ? v : d;
+      const settings = {
+        cycleLength: int(s.cycleLength, 20, 45, 28), periodLength: int(s.periodLength, 2, 10, 5),
+        lutealLength: int(s.lutealLength, 10, 16, 14), autoLockMinutes: int(s.autoLockMinutes, 1, 60, 5)
+      };
+      const periods = Array.isArray(src.periods) ? src.periods
+        .filter(p => p && isIso(p.start))
+        .map(p => ({ id: String(p.id || makeId()), start: p.start, end: isIso(p.end) && p.end >= p.start ? p.end : null, note: typeof p.note === 'string' ? p.note.slice(0, 200) : '' })) : [];
+      return { version: 1, settings, periods };
+    }
+
+    /* ---------- Mô hình dự đoán ---------- */
+    function median(values) {
+      const a = [...values].sort((x, y) => x - y);
+      const m = a.length >> 1;
+      return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+    }
+
+    // Trung bình có trọng số theo độ mới, co rút về giá trị mặc định (ước lượng Bayes đơn giản).
+    // Ít dữ liệu -> bám giá trị mặc định; nhiều dữ liệu -> bám chu kỳ thực tế của người dùng.
+    function estimate(values, prior, priorSd) {
+      const recent = values.slice(-MAX_HISTORY);
+      const n = recent.length;
+      const weights = recent.map((_, i) => Math.pow(RECENCY_DECAY, n - 1 - i));
+      const sw = weights.reduce((a, b) => a + b, 0);
+      const swx = recent.reduce((a, x, i) => a + weights[i] * x, 0);
+      // Trọng số của dữ liệu cá nhân tăng theo số chu kỳ: n / (n + PRIOR_WEIGHT) -> 1 khi theo dõi lâu.
+      const personal = n / (n + PRIOR_WEIGHT);
+      const mean = n ? personal * (swx / sw) + (1 - personal) * prior : prior;
+      let dataSd = null;
+      if (n >= 2) {
+        const m = swx / sw;
+        const variance = recent.reduce((a, x, i) => a + weights[i] * (x - m) ** 2, 0) / sw * n / (n - 1);
+        dataSd = Math.sqrt(variance);
+      }
+      const sd = dataSd === null ? priorSd : Math.sqrt((PRIOR_WEIGHT * priorSd ** 2 + (n - 1) * dataSd ** 2) / (PRIOR_WEIGHT + n - 1));
+      return { mean, sd, dataSd, n, personal };
+    }
+
+    function analyze() {
+      const st = state.settings;
+      const periods = [...state.periods].sort((a, b) => toDay(a.start) - toDay(b.start));
+      const cycles = [];
+      for (let i = 1; i < periods.length; i++) {
+        const length = toDay(periods[i].start) - toDay(periods[i - 1].start);
+        const outOfRange = length < 15 || length > 60;
+        cycles.push({ fromId: periods[i - 1].id, length, excluded: outOfRange, reason: outOfRange ? 'Ngoài khoảng 15–60 ngày (có thể quên ghi một kỳ)' : '' });
+      }
+      // Loại chu kỳ bất thường bằng median ± 3·MAD khi đã có đủ dữ liệu.
+      const candidates = cycles.filter(c => !c.excluded);
+      if (candidates.length >= 4) {
+        const lengths = candidates.map(c => c.length);
+        const med = median(lengths);
+        const mad = median(lengths.map(x => Math.abs(x - med)));
+        const limit = Math.max(6, 3 * 1.4826 * mad);
+        candidates.forEach(c => { if (Math.abs(c.length - med) > limit) { c.excluded = true; c.reason = 'Lệch nhiều so với các chu kỳ khác'; } });
+      }
+      const valid = cycles.filter(c => !c.excluded).map(c => c.length);
+      const cycle = estimate(valid, st.cycleLength, 3);
+      const durations = periods.filter(p => p.end).map(p => toDay(p.end) - toDay(p.start) + 1).filter(d => d >= 1 && d <= 15);
+      const period = estimate(durations, st.periodLength, 1);
+      const n = valid.length;
+      const margin = clamp(Math.round(cycle.sd * Math.sqrt(1 + 1 / (n + PRIOR_WEIGHT))), 1, 10);
+      const regularity = cycle.dataSd === null ? 0.8 : Math.exp(-Math.max(0, cycle.dataSd - 1.5) / 5);
+      const confidence = Math.round(100 * (n / (n + 2)) * regularity);
+
+      // Kiểm tra ngược: dự đoán từng chu kỳ chỉ bằng dữ liệu có trước nó, để đo sai số thực tế.
+      const errors = valid.map((actual, j) => Math.abs(Math.round(estimate(valid.slice(0, j), st.cycleLength, 3).mean) - actual));
+
+      const result = {
+        periods, cycles, valid, cycle, period, margin, confidence, durations,
+        cycleLen: Math.round(cycle.mean),
+        periodLen: clamp(Math.round(period.mean), 1, 15),
+        recentMae: avg(errors.slice(-6)), earlyMae: avg(errors.slice(0, 3)), errorCount: errors.length,
+        last: periods[periods.length - 1] || null, predictions: [], next: null
+      };
+      if (!result.last) return result;
+
+      const lastStart = toDay(result.last.start);
+      const t = today();
+      for (let i = 1, count = 0; count < 8 && i < 200; i++) {
+        const start = lastStart + Math.round(cycle.mean * i);
+        if (i > 1 && start + result.periodLen - 1 < t) continue; // bỏ các dự đoán đã trôi qua khi quên ghi
+        const ovulation = start - st.lutealLength;
+        result.predictions.push({ start, end: start + result.periodLen - 1, ovulation, fertileStart: ovulation - 5, fertileEnd: ovulation + 1 });
+        count++;
+      }
+      result.next = result.predictions[0];
+      return result;
+    }
+    /* ---------- Hiển thị ---------- */
+    function renderAll() {
+      analysis = analyze();
+      $('autoLockLabel').textContent = state.settings.autoLockMinutes;
+      renderOverview(analysis);
+      renderCalendar(analysis);
+      renderInsights(analysis);
+      renderHistory(analysis);
+      fillSettings();
+    }
+
+    function setStat(id, value, sub) { $(id).textContent = value; $(id + 'Sub').textContent = sub; }
+
+    function isOpenPeriod(a) { return !!a.last && !a.last.end && today() - toDay(a.last.start) <= 14; }
+
+    function renderOverview(a) {
+      const t = today();
+      const open = isOpenPeriod(a);
+      $('endTodayButton').disabled = !open;
+      const confLabel = a.confidence >= 70 ? 'Cao' : a.confidence >= 40 ? 'Trung bình' : 'Thấp';
+      setStat('statConfidence', `${a.confidence}%`, `${confLabel} · ${a.valid.length} chu kỳ hợp lệ`);
+      $('confidenceBar').style.width = `${a.confidence}%`;
+
+      if (!a.last) {
+        setStat('statCycleDay', '—', 'Chưa có dữ liệu');
+        setStat('statNext', '—', '');
+        setStat('statOvulation', '—', '');
+        $('phaseBanner').innerHTML = '<strong>Bắt đầu theo dõi</strong><span>Ghi ngày bắt đầu kỳ kinh gần nhất (nhập thêm các kỳ trước đó nếu còn nhớ) để nhận dự đoán.</span>';
+        return;
+      }
+
+      const lastStart = toDay(a.last.start);
+      const cycleDay = t - lastStart + 1;
+      const next = a.next;
+      const until = next.start - t;
+      setStat('statCycleDay', `Ngày ${cycleDay}`, `Bắt đầu ${fmt(lastStart)} · dự kiến dài ${a.cycleLen} ngày`);
+      setStat('statNext', until > 0 ? `${until} ngày nữa` : until === 0 ? 'Hôm nay' : `Trễ ${-until} ngày`,
+        `${fmt(next.start)} · khoảng ${fmtS(next.start - a.margin)} – ${fmtS(next.start + a.margin)}`);
+      const ov = a.predictions.find(p => p.fertileEnd >= t) || next;
+      const ovIn = ov.ovulation - t;
+      setStat('statOvulation', fmtS(ov.ovulation), `${ovIn > 0 ? `Sau ${ovIn} ngày` : ovIn === 0 ? 'Hôm nay' : `${-ovIn} ngày trước`} · dễ thụ thai ${fmtS(ov.fertileStart)} – ${fmtS(ov.fertileEnd)}`);
+
+      let title; let text;
+      const lastEnd = a.last.end ? toDay(a.last.end) : null;
+      if (open) {
+        title = `Đang trong kỳ kinh — ngày ${cycleDay}`;
+        text = 'Kỳ này chưa có ngày kết thúc. Bấm “Kết thúc kỳ hôm nay” khi xong để mô hình học số ngày hành kinh của bạn.';
+      } else if (lastEnd !== null && t <= lastEnd) {
+        title = `Đang trong kỳ kinh — ngày ${cycleDay}`;
+        text = `Kết thúc ${fmt(lastEnd)}.`;
+      } else if (t === next.ovulation) {
+        title = 'Hôm nay là ngày rụng trứng dự kiến';
+        text = 'Khả năng thụ thai cao nhất trong chu kỳ.';
+      } else if (t >= next.fertileStart && t <= next.fertileEnd) {
+        title = 'Đang trong cửa sổ dễ thụ thai';
+        text = `Kéo dài đến ${fmt(next.fertileEnd)}.`;
+      } else if (t < next.fertileStart) {
+        title = 'Giai đoạn nang noãn';
+        text = `Cửa sổ dễ thụ thai dự kiến bắt đầu sau ${next.fertileStart - t} ngày (${fmt(next.fertileStart)}).`;
+      } else if (t < next.start) {
+        title = 'Giai đoạn hoàng thể';
+        text = `Kỳ tiếp theo dự kiến sau ${until} ngày (${fmt(next.start)}).`;
+      } else {
+        title = `Trễ ${-until} ngày so với dự đoán`;
+        text = -until <= a.margin ? `Vẫn nằm trong khoảng sai số ±${a.margin} ngày.` : 'Nếu đã có kinh, hãy ghi lại ngày bắt đầu để cải thiện dự đoán.';
+      }
+      $('phaseBanner').innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(text)}</span>`;
+    }
+
+    function buildDayMap(a) {
+      const map = new Map();
+      const mark = (day, key) => { const o = map.get(day) || {}; o[key] = true; map.set(day, o); };
+      const t = today();
+      a.predictions.forEach(p => {
+        for (let d = p.fertileStart; d <= p.fertileEnd; d++) mark(d, 'fertile');
+        mark(p.ovulation, 'ovulation');
+        for (let d = p.start; d <= p.end; d++) mark(d, 'predicted');
+      });
+      a.periods.forEach(p => {
+        const s = toDay(p.start);
+        let e = p.end ? toDay(p.end) : s + a.periodLen - 1;
+        if (!p.end && p === a.last && isOpenPeriod(a)) e = Math.max(e, t);
+        for (let d = s; d <= e; d++) mark(d, !p.end && d > t ? 'predicted' : 'period');
+      });
+      return map;
+    }
+
+    function renderCalendar(a) {
+      const { y, m } = viewMonth;
+      const first = Math.round(Date.UTC(y, m, 1) / DAY_MS);
+      const offset = (new Date(first * DAY_MS).getUTCDay() + 6) % 7;
+      const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+      const cells = Math.ceil((offset + daysInMonth) / 7) * 7;
+      const map = buildDayMap(a);
+      const t = today();
+      $('calendarTitle').textContent = `Tháng ${m + 1}/${y}`;
+      let html = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => `<div class="weekday">${d}</div>`).join('');
+      for (let i = 0; i < cells; i++) {
+        const day = first - offset + i;
+        const date = new Date(day * DAY_MS);
+        const info = map.get(day) || {};
+        const classes = ['day'];
+        const labels = [];
+        if (date.getUTCMonth() !== m) classes.push('outside');
+        if (info.period) { classes.push('period'); labels.push('Hành kinh'); }
+        else if (info.predicted) { classes.push('predicted'); labels.push('Dự đoán hành kinh'); }
+        else if (info.fertile) { classes.push('fertile'); labels.push('Dễ thụ thai'); }
+        if (info.ovulation) { classes.push('ovulation'); labels.push('Rụng trứng dự kiến'); }
+        if (day === t) { classes.push('today'); labels.push('Hôm nay'); }
+        const title = `${fmt(day)}${labels.length ? ' · ' + labels.join(', ') : ''}`;
+        html += `<button type="button" class="${classes.join(' ')}" data-day="${day}" title="${title}" aria-label="${title}">${date.getUTCDate()}</button>`;
+      }
+      $('calendarGrid').innerHTML = html;
+    }
+
+    function renderInsights(a) {
+      const n = a.valid.length;
+      const excluded = a.cycles.length - n;
+      const sd = a.cycle.dataSd;
+      const regularity = sd === null ? '' : sd <= 2 ? ' · rất đều' : sd <= 4 ? ' · khá đều' : ' · không đều';
+      const items = [
+        ['Kỳ đã ghi', `${a.periods.length}`],
+        ['Chu kỳ dùng để học', `${Math.min(n, MAX_HISTORY)}${excluded ? ` (loại ${excluded})` : ''}`],
+        ['Mức dựa vào dữ liệu cá nhân', `${Math.round(a.cycle.personal * 100)}%`],
+        ['Độ dài chu kỳ dự đoán', `${a.cycleLen} ngày ± ${a.margin}`],
+        ['Ngắn nhất – dài nhất', n ? `${Math.min(...a.valid)} – ${Math.max(...a.valid)} ngày` : '—'],
+        ['Độ dao động (SD)', sd === null ? 'Cần ≥ 2 chu kỳ' : `${sd.toFixed(1)} ngày${regularity}`],
+        ['Số ngày hành kinh', `${a.periodLen} ngày${a.durations.length ? ` (từ ${a.durations.length} kỳ)` : ' (mặc định)'}`],
+        ['Sai số dự đoán gần đây', a.recentMae === null ? 'Cần ≥ 1 chu kỳ' : `± ${a.recentMae.toFixed(1)} ngày`],
+        ['Sai số những chu kỳ đầu', a.earlyMae === null ? '—' : `± ${a.earlyMae.toFixed(1)} ngày`]
+      ];
+      $('insightGrid').innerHTML = items.map(([k, v]) => `<div class="meta-item">${k}<strong>${escapeHtml(v)}</strong></div>`).join('');
+
+      const recent = a.cycles.slice(-12);
+      if (!recent.length) {
+        $('cycleChart').innerHTML = '<div class="chart-empty">Biểu đồ độ dài chu kỳ sẽ xuất hiện khi có từ 2 kỳ trở lên.</div>';
+      } else {
+        const max = Math.max(45, ...recent.map(c => c.length));
+        $('cycleChart').innerHTML = recent.map(c => `<div class="bar${c.excluded ? ' excluded' : ''}" style="height:${Math.max(6, c.length / max * 100)}%" title="${c.length} ngày${c.excluded ? ' · không tính: ' + escapeHtml(c.reason) : ''}"><span>${c.length}</span></div>`).join('');
+      }
+
+      let tip;
+      if (n < 3) tip = `Mô hình đang dựa chủ yếu vào giá trị mặc định (${state.settings.cycleLength} ngày). Ghi thêm ${3 - n} chu kỳ để bắt đầu học từ dữ liệu của bạn — có thể nhập lại các kỳ cũ nếu còn nhớ.`;
+      else if (n < 6) tip = 'Mô hình đang học nhịp chu kỳ của bạn. Sau khoảng 6 chu kỳ, khoảng sai số sẽ hẹp lại đáng kể.';
+      else tip = `Đủ dữ liệu: dự đoán dựa chủ yếu vào chu kỳ thực tế, ưu tiên các chu kỳ gần nhất (tối đa ${MAX_HISTORY}). Tiếp tục ghi đều để mô hình thích nghi khi cơ thể thay đổi.`;
+      if (a.recentMae !== null && a.earlyMae !== null && a.errorCount >= 6 && a.recentMae < a.earlyMae) tip += ` Sai số đã giảm từ ±${a.earlyMae.toFixed(1)} xuống ±${a.recentMae.toFixed(1)} ngày.`;
+      $('insightTip').textContent = tip;
+    }
+
+    function renderHistory(a) {
+      const t = today();
+      if (!a.periods.length) {
+        $('historyBody').innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center">Chưa có dữ liệu.</td></tr>';
+        return;
+      }
+      $('historyBody').innerHTML = [...a.periods].reverse().map(p => {
+        const s = toDay(p.start);
+        const cycle = a.cycles.find(c => c.fromId === p.id);
+        const duration = p.end ? `${toDay(p.end) - s + 1} ngày` : '—';
+        const end = p.end ? fmt(toDay(p.end)) : (p === a.last && isOpenPeriod(a) ? '<span class="tag">Đang diễn ra</span>' : '<span class="tag">Chưa ghi</span>');
+        const cycleCell = cycle
+          ? `${cycle.length} ngày${cycle.excluded ? ` <span class="tag warn" title="${escapeHtml(cycle.reason)}">không tính</span>` : ''}`
+          : `<span class="tag">Hiện tại: ngày ${t - s + 1}</span>`;
+        return `<tr><td>${fmt(s)}</td><td>${end}</td><td>${duration}</td><td>${cycleCell}</td><td class="note-cell">${escapeHtml(p.note)}</td>
+          <td><div class="row-actions"><button class="button button-secondary mini-button" type="button" data-action="edit" data-id="${escapeHtml(p.id)}">Sửa</button><button class="button button-danger mini-button" type="button" data-action="delete" data-id="${escapeHtml(p.id)}">Xóa</button></div></td></tr>`;
+      }).join('');
+    }
+
+    function fillSettings() {
+      const s = state.settings;
+      $('setCycle').value = s.cycleLength;
+      $('setPeriod').value = s.periodLength;
+      $('setLuteal').value = s.lutealLength;
+      $('setAutoLock').value = s.autoLockMinutes;
+      const max = toIso(today());
+      $('startInput').max = max;
+      $('endInput').max = max;
+    }
+    /* ---------- Ghi dữ liệu ---------- */
+    function validatePeriod(start, end, ignoreId) {
+      if (!isIso(start)) return 'Hãy chọn ngày bắt đầu hợp lệ.';
+      const s = toDay(start);
+      const t = today();
+      if (s > t) return 'Ngày bắt đầu không thể ở tương lai.';
+      if (end) {
+        if (!isIso(end)) return 'Ngày kết thúc không hợp lệ.';
+        const e = toDay(end);
+        if (e < s) return 'Ngày kết thúc phải từ ngày bắt đầu trở đi.';
+        if (e > t) return 'Ngày kết thúc không thể ở tương lai.';
+        if (e - s > 14) return 'Một kỳ kinh không nên dài quá 15 ngày. Hãy kiểm tra lại.';
+      }
+      const e = end ? toDay(end) : s;
+      for (const p of state.periods) {
+        if (p.id === ignoreId) continue;
+        const ps = toDay(p.start);
+        const pe = p.end ? toDay(p.end) : ps;
+        if ((s <= pe && ps <= e) || Math.abs(ps - s) < 10) return `Trùng hoặc quá sát (dưới 10 ngày) với kỳ bắt đầu ${fmt(ps)}.`;
+      }
+      return '';
+    }
+
+    function resetForm() {
+      editingId = null;
+      $('periodForm').reset();
+      $('formTitle').textContent = 'Ghi kỳ kinh';
+      $('periodSubmit').textContent = 'Thêm kỳ';
+      $('cancelEdit').hidden = true;
+    }
+
+    async function commit(message, statusId) {
+      renderAll();
+      await save();
+      if (message && state) $(statusId).textContent = message;
+    }
+
+    $('periodForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const start = $('startInput').value;
+      const end = $('endInput').value || null;
+      const note = $('noteInput').value.trim().slice(0, 200);
+      const error = validatePeriod(start, end, editingId);
+      if (error) { $('formStatus').textContent = error; return; }
+      const p = editingId && state.periods.find(x => x.id === editingId);
+      if (p) Object.assign(p, { start, end, note });
+      else state.periods.push({ id: makeId(), start, end, note });
+      const msg = p ? 'Đã cập nhật.' : `Đã thêm kỳ bắt đầu ${fmt(toDay(start))}.`;
+      resetForm();
+      await commit(msg, 'formStatus');
+    });
+
+    $('cancelEdit').addEventListener('click', () => { resetForm(); $('formStatus').textContent = ''; });
+
+    $('historyBody').addEventListener('click', async event => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const p = state.periods.find(x => x.id === button.dataset.id);
+      if (!p) return;
+      if (button.dataset.action === 'edit') {
+        editingId = p.id;
+        $('startInput').value = p.start;
+        $('endInput').value = p.end || '';
+        $('noteInput').value = p.note;
+        $('formTitle').textContent = 'Sửa kỳ kinh';
+        $('periodSubmit').textContent = 'Lưu thay đổi';
+        $('cancelEdit').hidden = false;
+        $('formStatus').textContent = '';
+        $('periodForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (confirm(`Xóa kỳ bắt đầu ${fmt(toDay(p.start))}?`)) {
+        state.periods = state.periods.filter(x => x.id !== p.id);
+        if (editingId === p.id) resetForm();
+        await commit('Đã xóa.', 'formStatus');
+      }
+    });
+
+    $('startTodayButton').addEventListener('click', async () => {
+      const start = toIso(today());
+      const error = validatePeriod(start, null, null);
+      if (error) { $('quickStatus').textContent = error; return; }
+      state.periods.push({ id: makeId(), start, end: null, note: '' });
+      await commit('Đã ghi nhận kỳ kinh bắt đầu hôm nay.', 'quickStatus');
+    });
+
+    $('endTodayButton').addEventListener('click', async () => {
+      if (!analysis || !isOpenPeriod(analysis)) return;
+      const p = state.periods.find(x => x.id === analysis.last.id);
+      const end = toIso(today());
+      const error = validatePeriod(p.start, end, p.id);
+      if (error) { $('quickStatus').textContent = error; return; }
+      p.end = end;
+      await commit(`Đã ghi nhận kết thúc kỳ (${toDay(end) - toDay(p.start) + 1} ngày).`, 'quickStatus');
+    });
+
+    $('calendarGrid').addEventListener('click', event => {
+      const cell = event.target.closest('[data-day]');
+      if (!cell) return;
+      const day = Number(cell.dataset.day);
+      if (day > today()) { $('formStatus').textContent = 'Không thể ghi ngày trong tương lai.'; return; }
+      const start = $('startInput').value;
+      if (!isIso(start) || $('endInput').value || toDay(start) > day) {
+        $('startInput').value = toIso(day);
+        $('endInput').value = '';
+        $('formStatus').textContent = `Ngày bắt đầu: ${fmt(day)}. Bấm thêm một ngày trên lịch để chọn ngày kết thúc.`;
+      } else {
+        $('endInput').value = toIso(day);
+        $('formStatus').textContent = `Ngày kết thúc: ${fmt(day)}. Bấm “${$('periodSubmit').textContent}” để lưu.`;
+      }
+    });
+
+    function currentMonth() { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; }
+    function shiftMonth(delta) {
+      const d = new Date(Date.UTC(viewMonth.y, viewMonth.m + delta, 1));
+      viewMonth = { y: d.getUTCFullYear(), m: d.getUTCMonth() };
+      renderCalendar(analysis);
+    }
+    $('prevMonth').addEventListener('click', () => shiftMonth(-1));
+    $('nextMonth').addEventListener('click', () => shiftMonth(1));
+    $('todayMonth').addEventListener('click', () => { viewMonth = currentMonth(); renderCalendar(analysis); });
+
+    $('settingsForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const read = (id, min, max) => { const v = Number($(id).value); return Number.isInteger(v) && v >= min && v <= max ? v : null; };
+      const next = { cycleLength: read('setCycle', 20, 45), periodLength: read('setPeriod', 2, 10), lutealLength: read('setLuteal', 10, 16), autoLockMinutes: read('setAutoLock', 1, 60) };
+      if (Object.values(next).some(v => v === null)) { $('settingsStatus').textContent = 'Giá trị không hợp lệ: chu kỳ 20–45, hành kinh 2–10, hoàng thể 10–16, tự khóa 1–60 phút.'; return; }
+      state.settings = next;
+      await commit('Đã lưu cài đặt.', 'settingsStatus');
+    });
+
+    $('passwordForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (busy) return;
+      const current = $('currentPassword').value;
+      const next = $('newPassword').value;
+      if (next.length < 4) { $('passwordStatus').textContent = 'Mật khẩu mới cần ít nhất 4 ký tự.'; return; }
+      if (next !== $('newPasswordConfirm').value) { $('passwordStatus').textContent = 'Mật khẩu mới nhập lại không khớp.'; return; }
+      busy = true;
+      $('passwordStatus').textContent = 'Đang xử lý…';
+      try {
+        await saveChain;
+        const vault = readVault();
+        try {
+          await decryptVault(vault, await deriveKey(current, fromB64(vault.salt), vault.iterations));
+        } catch {
+          $('passwordStatus').textContent = 'Mật khẩu hiện tại không đúng.';
+          return;
+        }
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        session = { key: await deriveKey(next, salt, ITERATIONS), salt, iterations: ITERATIONS };
+        await save();
+        $('passwordForm').reset();
+        $('passwordStatus').textContent = 'Đã đổi mật khẩu. Các bản sao lưu cũ vẫn dùng mật khẩu cũ.';
+      } finally {
+        busy = false;
+      }
+    });
+
+    $('exportButton').addEventListener('click', async () => {
+      await save();
+      const raw = localStorage.getItem(VAULT_KEY);
+      if (!raw) { $('dataStatus').textContent = 'Không có dữ liệu để xuất.'; return; }
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+      link.download = `cycle-keeper-backup-${toIso(today())}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      $('dataStatus').textContent = 'Đã xuất bản sao lưu đã mã hóa.';
+    });
+
+    $('importButton').addEventListener('click', () => $('importFile').click());
+    $('importFile').addEventListener('change', async () => {
+      const file = $('importFile').files[0];
+      $('importFile').value = '';
+      if (!file) return;
+      let vault;
+      try { vault = JSON.parse(await file.text()); } catch { vault = null; }
+      if (!isValidVault(vault)) { $('dataStatus').textContent = 'Tệp không phải bản sao lưu Cycle Keeper hợp lệ.'; return; }
+      if (!confirm('Thay thế toàn bộ dữ liệu hiện tại bằng bản sao lưu này?\nBạn sẽ cần mật khẩu của bản sao lưu để mở khóa.')) return;
+      await saveChain;
+      session = null;
+      localStorage.setItem(VAULT_KEY, JSON.stringify(vault));
+      lock('Đã nhập bản sao lưu. Nhập mật khẩu của bản sao lưu để mở khóa.');
+    });
+
+    $('wipeButton').addEventListener('click', async () => {
+      if (!confirm('Xóa vĩnh viễn toàn bộ dữ liệu và mật khẩu? Không thể hoàn tác.')) return;
+      await saveChain;
+      session = null;
+      localStorage.removeItem(VAULT_KEY);
+      lock('Đã xóa toàn bộ dữ liệu.');
+    });
+    /* ---------- Khóa / mở khóa ---------- */
+    function readLockout() {
+      try { const o = JSON.parse(localStorage.getItem(LOCKOUT_KEY) || '{}'); return { count: Number(o.count) || 0, until: Number(o.until) || 0 }; }
+      catch { return { count: 0, until: 0 }; }
+    }
+
+    function lock(message) {
+      session = null;
+      state = null;
+      analysis = null;
+      resetForm();
+      ['calendarGrid', 'historyBody', 'insightGrid', 'cycleChart', 'phaseBanner'].forEach(id => { $(id).innerHTML = ''; });
+      ['formStatus', 'quickStatus', 'settingsStatus', 'passwordStatus', 'dataStatus', 'insightTip'].forEach(id => { $(id).textContent = ''; });
+      $('passwordForm').reset();
+      showLock(message);
+    }
+
+    function showLock(message) {
+      const setup = !readVault();
+      $('appView').hidden = true;
+      $('lockView').hidden = false;
+      $('lockTitle').textContent = setup ? 'Tạo mật khẩu bảo vệ' : 'Nhập mật khẩu để mở khóa';
+      $('lockHint').textContent = setup
+        ? 'Dữ liệu sẽ được mã hóa bằng mật khẩu này và chỉ lưu trên trình duyệt. Không có cách khôi phục nếu quên mật khẩu.'
+        : 'Dữ liệu chu kỳ đang được mã hóa trên thiết bị này.';
+      $('confirmWrap').hidden = !setup;
+      $('confirmInput').required = setup;
+      $('passwordInput').autocomplete = setup ? 'new-password' : 'current-password';
+      $('lockSubmit').textContent = setup ? 'Tạo & bắt đầu' : 'Mở khóa';
+      $('resetVaultButton').hidden = setup;
+      $('lockForm').reset();
+      $('lockStatus').textContent = message || '';
+      $('passwordInput').focus();
+    }
+
+    function unlocked() {
+      $('lockView').hidden = true;
+      $('appView').hidden = false;
+      $('lockForm').reset();
+      lastActivity = Date.now();
+      viewMonth = currentMonth();
+      renderAll();
+    }
+
+    $('lockForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (busy) return;
+      if (!window.crypto || !crypto.subtle) { $('lockStatus').textContent = 'Trình duyệt không hỗ trợ Web Crypto. Hãy mở trang qua HTTPS, localhost hoặc trình duyệt mới hơn.'; return; }
+      const password = $('passwordInput').value;
+      const vault = readVault();
+      busy = true;
+      $('lockSubmit').disabled = true;
+      try {
+        if (!vault) {
+          if (password.length < 4) { $('lockStatus').textContent = 'Mật khẩu cần ít nhất 4 ký tự.'; return; }
+          if (password !== $('confirmInput').value) { $('lockStatus').textContent = 'Mật khẩu nhập lại không khớp.'; return; }
+          $('lockStatus').textContent = 'Đang tạo khóa mã hóa…';
+          const salt = crypto.getRandomValues(new Uint8Array(16));
+          session = { key: await deriveKey(password, salt, ITERATIONS), salt, iterations: ITERATIONS };
+          state = normalizeState({});
+          await save();
+          unlocked();
+          return;
+        }
+        const lockout = readLockout();
+        const wait = lockout.until - Date.now();
+        if (wait > 0) { $('lockStatus').textContent = `Nhập sai quá nhiều lần. Thử lại sau ${Math.ceil(wait / 1000)} giây.`; return; }
+        $('lockStatus').textContent = 'Đang giải mã…';
+        const salt = fromB64(vault.salt);
+        const key = await deriveKey(password, salt, vault.iterations);
+        let data;
+        try { data = await decryptVault(vault, key); } catch {
+          const count = lockout.count + 1;
+          const penalty = count % 5 === 0 ? Math.min(600, 30 * 2 ** (count / 5 - 1)) : 0;
+          localStorage.setItem(LOCKOUT_KEY, JSON.stringify({ count, until: penalty ? Date.now() + penalty * 1000 : 0 }));
+          $('lockStatus').textContent = penalty ? `Sai mật khẩu. Tạm khóa ${penalty} giây.` : `Sai mật khẩu (${count % 5}/5).`;
+          $('passwordInput').select();
+          return;
+        }
+        localStorage.removeItem(LOCKOUT_KEY);
+        session = { key, salt, iterations: vault.iterations };
+        state = normalizeState(data);
+        unlocked();
+      } catch {
+        $('lockStatus').textContent = 'Có lỗi khi xử lý dữ liệu mã hóa.';
+      } finally {
+        busy = false;
+        $('lockSubmit').disabled = false;
+      }
+    });
+
+    $('resetVaultButton').addEventListener('click', () => {
+      const answer = prompt('Thao tác này xóa vĩnh viễn mọi dữ liệu chu kỳ để tạo mật khẩu mới.\nGõ XOA để xác nhận:');
+      if (answer === null) return;
+      if (answer.trim().toUpperCase() !== 'XOA') { $('lockStatus').textContent = 'Chưa xác nhận, dữ liệu được giữ nguyên.'; return; }
+      localStorage.removeItem(VAULT_KEY);
+      localStorage.removeItem(LOCKOUT_KEY);
+      showLock('Đã xóa dữ liệu. Hãy tạo mật khẩu mới.');
+    });
+
+    $('lockNowButton').addEventListener('click', () => lock('Đã khóa.'));
+
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(type => document.addEventListener(type, () => { lastActivity = Date.now(); }, { passive: true }));
+    setInterval(() => {
+      if (session && state && Date.now() - lastActivity > state.settings.autoLockMinutes * 60000) lock('Đã tự động khóa do không hoạt động.');
+    }, 5000);
+    // Đổi ngày khi để trang mở qua đêm.
+    let renderedDay = today();
+    setInterval(() => { if (state && today() !== renderedDay) { renderedDay = today(); renderAll(); } }, 60000);
+
+    showLock();
+  })();
+  </script>
+</body>
+</html>

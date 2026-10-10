@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-grid fieldset { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 12px; }
+    .form-grid legend { padding: 0 6px; color: var(--mint); font-size: .8rem; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; }
+    .form-grid textarea { min-height: 84px; font-family: inherit; }
+    .form-grid select, .form-grid input[type="datetime-local"], .form-grid input[type="number"] { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px; outline: none; color: var(--text); background: var(--input); font: inherit; }
+    .form-grid select:focus, .form-grid input:focus { border-color: var(--mint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 16%, transparent); }
+    .inline { display: grid; grid-template-columns: 110px minmax(0, 1fr) 110px; gap: 10px; }
+    .hint { margin: 6px 0 0; color: var(--muted); font-size: .8rem; }
+
+    /* ===== Preview ===== */
+    .preview-wrap { margin-top: 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .preview-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .preview-actions .status { margin: 0; text-align: center; }
+    .phone { position: relative; width: 100%; max-width: 420px; padding: 22px 18px 34px; border-radius: 22px; background: #f5f6f7; color: #1d2329; font-family: "Open Sans", "Segoe UI", Arial, sans-serif; overflow: hidden; }
+    .phone-top { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 14px; }
+    .demo-logo { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, serif; font-size: 1.75rem; font-weight: bold; font-style: italic; letter-spacing: -.04em; line-height: 1; background: linear-gradient(90deg, #4b3b8f, #2f8fd8 55%, #ff8a1f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .txn-id { display: flex; align-items: center; gap: 8px; color: #7b8590; font-size: .95rem; }
+    .txn-id svg { width: 18px; height: 18px; }
+
+    .receipt { position: relative; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+    .receipt-head { padding: 18px 16px 20px; border-radius: 12px 12px 0 0; background: #2ecc9a; color: #fff; text-align: center; }
+    .check { display: grid; width: 40px; height: 40px; margin: 0 auto 6px; place-items: center; border: 2px solid #fff; border-radius: 50%; background: #4fcf5c; }
+    .check svg { width: 22px; height: 22px; }
+    .status-title { margin: 0; font-size: 1.45rem; font-weight: 600; }
+    .status-time { margin: 2px 0 0; font-size: 1rem; opacity: .95; }
+
+    .receipt-body { position: relative; background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='28' viewBox='0 0 160 28'%3E%3Cpath d='M0 14 C40 0 80 28 160 14' fill='none' stroke='%23eef0f2' stroke-width='1.2'/%3E%3C/svg%3E"); border-radius: 0 0 12px 12px; }
+    .amount-box { padding: 22px 16px 26px; text-align: center; }
+    .txn-type { margin: 0 0 6px; font-size: 1.3rem; font-weight: 700; }
+    .amount { margin: 0; font-size: 2.6rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+    .amount small { font-size: 1.05rem; font-weight: 600; margin-left: 4px; }
+
+    .divider { position: relative; height: 0; margin: 0 14px; border-top: 2px dashed #dcdfe3; }
+    .divider::before, .divider::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 50%; background: #f5f6f7; }
+    .divider::before { left: -26px; }
+    .divider::after { right: -26px; }
+
+    .rows { padding: 8px 28px 12px; }
+    .row { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 12px; padding: 18px 0; border-bottom: 2px solid #e3e6e9; }
+    .row:last-child { border-bottom: 0; }
+    .row-label { color: #5c656e; font-size: .9rem; text-transform: uppercase; padding-top: 2px; }
+    .row-main { font-size: 1.05rem; font-weight: 600; text-transform: uppercase; word-break: break-word; }
+    .row-sub { color: #7b8590; font-size: 1.05rem; line-height: 1.45; white-space: pre-line; word-break: break-word; }
+    .row-sub .strong { font-weight: 600; }
+    .row-desc { font-size: 1.05rem; word-break: break-word; white-space: pre-line; }
+
+    @media (max-width: 680px) { .form-grid { grid-template-columns: 1fr; } .inline { grid-template-columns: 90px minmax(0, 1fr) 90px; } .rows { padding: 6px 18px 10px; } .amount { font-size: 2.2rem; } }
+  </style>
+</head>
+<body data-tool-name="Mẫu màn hình giao dịch" data-tool-category="Giao diện" data-tool-description="Dựng thử bố cục màn hình “giao dịch thành công” (header trạng thái, số tiền, đường răng cưa, các dòng thông tin). Thương hiệu giả lập và luôn có watermark DEMO.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <form class="form-grid" id="form" autocomplete="off" onsubmit="return false">
+        <div>
+          <label class="field-label" for="txnId">Mã tham chiếu</label>
+          <input id="txnId" type="text" value="293245">
+        </div>
+        <div>
+          <label class="field-label" for="time">Thời gian</label>
+          <input id="time" type="datetime-local">
+        </div>
+        <div>
+          <label class="field-label" for="statusText">Tiêu đề trạng thái</label>
+          <input id="statusText" type="text" value="Giao dịch thành công">
+        </div>
+        <div>
+          <label class="field-label" for="txnType">Loại giao dịch</label>
+          <input id="txnType" type="text" value="Chuyển Tiền">
+        </div>
+        <div class="full">
+          <label class="field-label" for="amount">Số tiền</label>
+          <div class="inline">
+            <select id="sign" aria-label="Dấu">
+              <option value="-">− (trừ)</option>
+              <option value="+">+ (cộng)</option>
+              <option value="">Không dấu</option>
+            </select>
+            <input id="amount" type="number" min="0" step="1" value="100000">
+            <input id="currency" type="text" value="VND" aria-label="Đơn vị">
+          </div>
+        </div>
+        <fieldset>
+          <legend>Từ</legend>
+          <div>
+            <label class="field-label" for="fromName">Tên</label>
+            <input id="fromName" type="text" value="Nguyen Hoang Kha">
+          </div>
+          <div>
+            <label class="field-label" for="fromSource">Nguồn (in đậm)</label>
+            <input id="fromSource" type="text" value="Timo Digital Bank by BVBank">
+          </div>
+          <div>
+            <label class="field-label" for="fromExtra">Dòng phụ (mỗi dòng một ý)</label>
+            <textarea id="fromExtra">9020 11234 5341
+Tài khoản chính</textarea>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Đến</legend>
+          <div>
+            <label class="field-label" for="toName">Tên</label>
+            <input id="toName" type="text" value="Tran Thi B">
+          </div>
+          <div>
+            <label class="field-label" for="toSource">Nguồn (in đậm)</label>
+            <input id="toSource" type="text" value="Timo Digital Bank by BVBank">
+          </div>
+          <div>
+            <label class="field-label" for="toExtra">Dòng phụ (mỗi dòng một ý)</label>
+            <textarea id="toExtra">0000 0000 0002</textarea>
+          </div>
+        </fieldset>
+        <div class="full">
+          <label class="field-label" for="desc">Mô tả</label>
+          <input id="desc" type="text" value="Thanh toan tien">
+          <p class="hint"></p>
+        </div>
+      </form>
+
+      <div class="action-row">
+        <button id="resetButton" class="button button-secondary" type="button">Khôi phục mặc định</button>
+      </div>
+<style>
+.demo-logo {
+    width: 100px;
+    height: auto;
+    overflow: hidden;
+    position: relative;
+}
+
+.demo-logo img {
+    width: 180%;
+    height: 100%;
+    object-fit: cover;
+    object-position: left;
+    max-width: none;
+}
+</style>
+      <div class="preview-wrap">
+        <article class="phone" aria-label="Xem trước">
+          <div class="watermark" aria-hidden="true"></div>
+          <div class="phone-top">
+            <div class="demo-logo"><img src="./timo.svg" alt=""></div>
+            <span class="txn-id">Mã:<span id="pTxnId"></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M4 16V5a2 2 0 0 1 2-2h9"/></svg>
+            </span>
+          </div>
+
+          <div class="receipt">
+            <header class="receipt-head">
+              <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+              <p class="status-title" id="pStatus"></p>
+              <p class="status-time" id="pTime"></p>
+            </header>
+            <div class="receipt-body">
+              <div class="amount-box">
+                <p class="txn-type" id="pType"></p>
+                <p class="amount"><span id="pAmount"></span><small id="pCurrency"></small></p>
+              </div>
+              <div class="divider"></div>
+              <div class="rows">
+                <div class="row">
+                  <div class="row-label">Từ</div>
+                  <div>
+                    <div class="row-main" id="pFromName"></div>
+                    <div class="row-sub"><span class="strong" id="pFromSource"></span><span id="pFromExtra"></span></div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="row-label">Đến</div>
+                  <div>
+                    <div class="row-main" id="pToName"></div>
+                    <div class="row-sub"><span class="strong" id="pToSource"></span><span id="pToExtra"></span></div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="row-label">Mô tả</div>
+                  <div class="row-desc" id="pDesc"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+        <div class="preview-actions">
+          <button id="saveImageButton" class="button" type="button">Lưu ảnh (PNG)</button>
+          <p class="status" id="saveStatus" role="status"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const form = $('form');
+    const pad = n => String(n).padStart(2, '0');
+
+    function nowLocal() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function formatTime(value) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+      return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : '';
+    }
+
+    function formatAmount(value) {
+      const n = Math.max(0, Math.floor(Number(value) || 0));
+      return n.toLocaleString('vi-VN');
+    }
+
+    function render() {
+      $('pTxnId').textContent = $('txnId').value;
+      $('pStatus').textContent = $('statusText').value;
+      $('pTime').textContent = formatTime($('time').value);
+      $('pType').textContent = $('txnType').value;
+      $('pAmount').textContent = $('sign').value + formatAmount($('amount').value);
+      $('pCurrency').textContent = $('currency').value;
+      $('pFromName').textContent = $('fromName').value;
+      $('pFromSource').textContent = $('fromSource').value;
+      $('pFromExtra').textContent = $('fromExtra').value.trim() ? '\n' + $('fromExtra').value.trim() : '';
+      $('pToName').textContent = $('toName').value;
+      $('pToSource').textContent = $('toSource').value;
+      $('pToExtra').textContent = $('toExtra').value.trim() ? '\n' + $('toExtra').value.trim() : '';
+      $('pDesc').textContent = $('desc').value;
+    }
+
+    // ===== Lưu ảnh: vẽ khung xem trước (kèm watermark) sang PNG, không cần thư viện ngoài =====
+    function collectPreviewCss() {
+      const sheet = [...document.styleSheets].find(s => s.ownerNode && s.ownerNode.tagName === 'STYLE');
+      let css = '* { box-sizing: border-box; }\n';
+      if (!sheet) return css;
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSMediaRule) {
+          // Áp dụng media query theo cửa sổ hiện tại để ảnh giống hệt bản xem trước
+          if (window.matchMedia(rule.media.mediaText).matches) {
+            for (const inner of rule.cssRules) css += inner.cssText + '\n';
+          }
+        } else {
+          css += rule.cssText + '\n';
+        }
+      }
+      return css;
+    }
+
+    function renderPreviewToCanvas(node, scale) {
+      const width = Math.ceil(node.offsetWidth);
+      const height = Math.ceil(node.offsetHeight);
+      const clone = node.cloneNode(true);
+      clone.style.width = width + 'px';
+      clone.style.maxWidth = 'none';
+      clone.style.margin = '0';
+
+      const wrapper = document.createElement('div');
+      wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+      const style = document.createElement('style');
+      style.textContent = collectPreviewCss();
+      wrapper.append(style, clone);
+      const xhtml = new XMLSerializer().serializeToString(wrapper);
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width * scale}" height="${height * scale}" viewBox="0 0 ${width} ${height}">` +
+        `<foreignObject x="0" y="0" width="${width}" height="${height}">${xhtml}</foreignObject></svg>`;
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width * scale;
+          canvas.height = height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas);
+        };
+        img.onerror = () => reject(new Error('Không dựng được ảnh'));
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    }
+
+    $('saveImageButton').addEventListener('click', async () => {
+      const button = $('saveImageButton');
+      const status = $('saveStatus');
+      button.disabled = true;
+      status.textContent = 'Đang tạo ảnh…';
+      try {
+        const scale = Math.max(2, Math.min(3, Math.ceil(window.devicePixelRatio || 1)));
+        const canvas = await renderPreviewToCanvas(document.querySelector('.phone'), scale);
+        const blob = await new Promise((resolve, reject) => {
+          try { canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob trả về rỗng')), 'image/png'); }
+          catch (err) { reject(err); }
+        });
+        const safeId = ($('txnId').value || 'demo').replace(/[^\w-]+/g, '_').slice(0, 40);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `mau-giao-dich-${safeId}.png`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        status.textContent = 'Đã lưu ảnh.';
+      } catch (err) {
+        console.error(err);
+        status.textContent = 'Trình duyệt không hỗ trợ xuất ảnh — hãy thử Chrome/Edge/Firefox hoặc chụp màn hình.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    $('resetButton').addEventListener('click', () => {
+      form.reset();
+      $('time').value = nowLocal();
+      render();
+    });
+
+    form.addEventListener('input', render);
+    form.addEventListener('change', render);
+    $('time').value = nowLocal();
+    render();
+  </script>
+</body>
+</html>
