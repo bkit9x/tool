@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .convert-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 16px; align-items: end; margin-top: 20px; }
+    .control-field select { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 13px 40px 13px 14px; outline: none; color: var(--text); background: var(--input); }
+    .control-field select:focus { border-color: var(--mint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 16%, transparent); }
+    .result-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-top: 26px; }
+    .line-count { margin-bottom: 9px; color: var(--muted); font-family: Consolas, monospace; font-size: .78rem; }
+    .field-help { margin: 7px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+    @media (max-width: 680px) { .convert-controls { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-tool-name="Chuyển đổi Số, La Mã, Chữ cái" data-tool-category="Chuyển đổi" data-tool-description="Chuyển đổi từng dòng giữa số thập phân, số La Mã và thứ tự chữ cái.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <label class="field-label" for="sourceText">Dữ liệu cần chuyển đổi</label>
+      <textarea id="sourceText" placeholder="12&#10;XIV&#10;AA"></textarea>
+      <p class="field-help">Mỗi dòng là một giá trị. Khoảng trắng đầu/cuối dòng được giữ nguyên; dòng không hợp lệ sẽ không thay đổi.</p>
+      <div class="convert-controls">
+        <div class="control-field">
+          <label class="field-label" for="sourceFormat">Định dạng đầu vào</label>
+          <select id="sourceFormat">
+            <option value="auto">Tự nhận dạng</option>
+            <option value="decimal">Số thập phân</option>
+            <option value="roman">Số La Mã</option>
+            <option value="alphabet">Chữ cái</option>
+          </select>
+        </div>
+        <div class="control-field">
+          <label class="field-label" for="targetFormat">Chuyển sang</label>
+          <select id="targetFormat">
+            <option value="decimal">Số thập phân (1, 2, 27)</option>
+            <option value="roman">Số La Mã (I, II, XXVII)</option>
+            <option value="alphabet">Chữ cái (A, B, AA)</option>
+          </select>
+        </div>
+        <button id="convertButton" class="button" type="button">Chuyển đổi</button>
+      </div>
+      <p id="status" class="status" role="status">Số La Mã hỗ trợ từ I đến MMMCMXCIX (1-3999). Chữ cái không giới hạn độ dài.</p>
+      <div class="result-heading">
+        <label class="field-label" for="resultText">Kết quả</label>
+        <span id="lineCount" class="line-count"></span>
+      </div>
+      <textarea id="resultText" readonly placeholder="Kết quả sẽ giữ đúng số dòng như dữ liệu đầu vào."></textarea>
+      <div class="action-row">
+        <button id="copyButton" class="button" type="button" disabled>Sao chép kết quả</button>
+        <button id="replaceButton" class="button button-secondary" type="button" disabled>Thay vào ô nhập</button>
+        <button id="clearButton" class="button button-secondary" type="button">Xóa</button>
+      </div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const sourceText = document.getElementById('sourceText');
+    const sourceFormat = document.getElementById('sourceFormat');
+    const targetFormat = document.getElementById('targetFormat');
+    const resultText = document.getElementById('resultText');
+    const status = document.getElementById('status');
+    const lineCount = document.getElementById('lineCount');
+    const copyButton = document.getElementById('copyButton');
+    const replaceButton = document.getElementById('replaceButton');
+    const romanValues = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+
+    function numberToRoman(value) {
+      if (!Number.isInteger(value) || value < 1 || value > 3999) return null;
+      let result = '';
+      for (const [amount, symbol] of romanValues) while (value >= amount) { result += symbol; value -= amount; }
+      return result;
+    }
+
+    function romanToNumber(value) {
+      const normalized = value.toUpperCase();
+      if (!/^[MDCLXVI]+$/.test(normalized)) return null;
+      let total = 0;
+      let previous = 0;
+      for (let index = normalized.length - 1; index >= 0; index -= 1) {
+        const current = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 }[normalized[index]];
+        total += current < previous ? -current : current;
+        previous = Math.max(previous, current);
+      }
+      return numberToRoman(total) === normalized ? total : null;
+    }
+
+    function numberToAlphabet(value) {
+      if (!Number.isSafeInteger(value) || value < 1) return null;
+      let result = '';
+      while (value > 0) { value -= 1; result = String.fromCharCode(65 + (value % 26)) + result; value = Math.floor(value / 26); }
+      return result;
+    }
+
+    function alphabetToNumber(value) {
+      const normalized = value.toUpperCase();
+      if (!/^[A-Z]+$/.test(normalized)) return null;
+      let total = 0;
+      for (const character of normalized) { total = total * 26 + character.charCodeAt(0) - 64; if (!Number.isSafeInteger(total)) return null; }
+      return total;
+    }
+
+    function detectValue(value) {
+      function decimalValue() { if (!/^[1-9]\d*$/.test(value)) return null; const number = Number(value); return Number.isSafeInteger(number) ? number : null; }
+      if (sourceFormat.value === 'decimal') { const number = decimalValue(); return number === null ? null : { value: number }; }
+      if (sourceFormat.value === 'roman') { const number = romanToNumber(value); return number === null ? null : { value: number }; }
+      if (sourceFormat.value === 'alphabet') { const number = alphabetToNumber(value); return number === null ? null : { value: number }; }
+      const decimal = decimalValue();
+      if (decimal !== null) return { value: decimal };
+      const roman = romanToNumber(value);
+      if (roman !== null) return { value: roman };
+      const alphabet = alphabetToNumber(value);
+      return alphabet === null ? null : { value: alphabet };
+    }
+
+    function formatValue(value) {
+      if (targetFormat.value === 'decimal') return String(value);
+      if (targetFormat.value === 'roman') return numberToRoman(value);
+      return numberToAlphabet(value);
+    }
+
+    function convertLine(line) {
+      const match = line.match(/^(\s*)(.*?)(\s*)$/);
+      const detected = detectValue(match[2]);
+      if (!detected) return { line, converted: false };
+      const converted = formatValue(detected.value);
+      if (!converted) return { line, converted: false };
+      return { line: `${match[1]}${converted}${match[3]}`, converted: converted !== match[2] };
+    }
+
+    function convertText() {
+      if (!sourceText.value) { status.textContent = 'Hãy nhập ít nhất một dòng để chuyển đổi.'; sourceText.focus(); return; }
+      const lines = sourceText.value.split(/\r?\n/);
+      let convertedCount = 0;
+      resultText.value = lines.map(line => { const result = convertLine(line); if (result.converted) convertedCount += 1; return result.line; }).join('\n');
+      lineCount.textContent = `${lines.length} dòng`;
+      copyButton.disabled = false;
+      replaceButton.disabled = false;
+      status.textContent = `Đã xử lý ${lines.length} dòng, thay đổi ${convertedCount} giá trị.`;
+    }
+
+    async function copyResult() {
+      if (!resultText.value) return;
+      try { await navigator.clipboard.writeText(resultText.value); status.textContent = 'Đã sao chép kết quả.'; }
+      catch { resultText.focus(); resultText.select(); status.textContent = 'Hãy nhấn Ctrl/Cmd + C để sao chép.'; }
+    }
+
+    function replaceSource() { if (resultText.value) { sourceText.value = resultText.value; sourceText.focus(); status.textContent = 'Đã thay kết quả vào ô nhập.'; } }
+    function clearAll() { sourceText.value = ''; resultText.value = ''; lineCount.textContent = ''; copyButton.disabled = true; replaceButton.disabled = true; status.textContent = 'Số La Mã hỗ trợ từ I đến MMMCMXCIX (1-3999). Chữ cái không giới hạn độ dài.'; sourceText.focus(); }
+
+    document.getElementById('convertButton').addEventListener('click', convertText);
+    copyButton.addEventListener('click', copyResult);
+    replaceButton.addEventListener('click', replaceSource);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+    sourceText.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') convertText(); });
+  </script>
+</body>
+</html>

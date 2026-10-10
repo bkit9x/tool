@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .compare-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .file-panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface) 82%, transparent); }
+    .file-panel h2 { margin: 0 0 12px; font-size: 1rem; }
+    .file-drop { min-height: 150px; padding: 20px; cursor: pointer; }
+    .file-drop strong { display: block; margin-bottom: 6px; color: var(--text); }
+    .file-drop small { line-height: 1.45; }
+    .file-name { overflow-wrap: anywhere; }
+    .hash-list { display: grid; gap: 10px; margin-top: 16px; }
+    .hash-item { padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--input); }
+    .hash-label { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; color: var(--muted); font-size: .76rem; font-weight: bold; text-transform: uppercase; }
+    .hash-value { min-height: 2.8em; margin: 0; overflow-wrap: anywhere; font-family: Consolas, monospace; font-size: .78rem; line-height: 1.4; }
+    .result-banner { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; margin-top: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--meta); }
+    .result-mark { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid var(--line); border-radius: 50%; font-family: Consolas, monospace; font-size: 1.25rem; font-weight: bold; }
+    .result-banner h2 { margin: 0 0 4px; font-size: 1.1rem; }
+    .result-banner p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+    .result-banner.is-same { border-color: var(--mint); background: color-mix(in srgb, var(--mint) 10%, var(--meta)); }
+    .result-banner.is-same .result-mark { border-color: var(--mint); color: var(--mint); }
+    .result-banner.is-different { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, var(--meta)); }
+    .result-banner.is-different .result-mark { border-color: var(--danger); color: var(--danger); }
+    .privacy-note { margin: 18px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+    @media (max-width: 760px) { .compare-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-tool-name="So sánh Hash File" data-tool-category="Bảo mật" data-tool-description="Tạo SHA-256 và SHA-512 cho hai file, sau đó xác định chúng giống hay khác nhau.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="compare-layout">
+        <article class="file-panel">
+          <h2>File thứ nhất</h2>
+          <input id="fileInputA" type="file" hidden>
+          <div class="drop-zone file-drop" data-drop-zone="0" role="button" tabindex="0" aria-controls="fileInputA">
+            <div><strong>Chọn hoặc kéo thả file</strong><small>Mọi định dạng đều được hỗ trợ.</small></div>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-item">Tên file<strong class="file-name" data-file-name="0">Chưa chọn</strong></div>
+            <div class="meta-item">Kích thước<strong data-file-size="0">—</strong></div>
+          </div>
+          <div class="hash-list">
+            <div class="hash-item"><div class="hash-label"><span>SHA-256</span><span data-hash-state="0">Chờ file</span></div><p class="hash-value" data-hash="0-sha256">—</p></div>
+            <div class="hash-item"><div class="hash-label"><span>SHA-512</span><span data-hash-state="0">Chờ file</span></div><p class="hash-value" data-hash="0-sha512">—</p></div>
+          </div>
+        </article>
+        <article class="file-panel">
+          <h2>File thứ hai</h2>
+          <input id="fileInputB" type="file" hidden>
+          <div class="drop-zone file-drop" data-drop-zone="1" role="button" tabindex="0" aria-controls="fileInputB">
+            <div><strong>Chọn hoặc kéo thả file</strong><small>Mọi định dạng đều được hỗ trợ.</small></div>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-item">Tên file<strong class="file-name" data-file-name="1">Chưa chọn</strong></div>
+            <div class="meta-item">Kích thước<strong data-file-size="1">—</strong></div>
+          </div>
+          <div class="hash-list">
+            <div class="hash-item"><div class="hash-label"><span>SHA-256</span><span data-hash-state="1">Chờ file</span></div><p class="hash-value" data-hash="1-sha256">—</p></div>
+            <div class="hash-item"><div class="hash-label"><span>SHA-512</span><span data-hash-state="1">Chờ file</span></div><p class="hash-value" data-hash="1-sha512">—</p></div>
+          </div>
+        </article>
+      </div>
+      <div id="resultBanner" class="result-banner" role="status" aria-live="polite">
+        <div id="resultMark" class="result-mark">?</div>
+        <div><h2 id="resultTitle">Đang chờ hai file</h2><p id="resultDescription">Chọn đủ hai file để bắt đầu so sánh tự động.</p></div>
+      </div>
+      <div class="action-row">
+        <button id="compareButton" class="button" type="button" disabled>So sánh lại</button>
+        <button id="clearButton" class="button button-secondary" type="button">Xóa tất cả</button>
+      </div>
+      <p class="privacy-note">File chỉ được xử lý cục bộ trong trình duyệt và không được tải lên máy chủ. File lớn có thể cần thêm thời gian và bộ nhớ để tạo hash.</p>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const fileInputs = [document.getElementById('fileInputA'), document.getElementById('fileInputB')];
+    const dropZones = Array.from(document.querySelectorAll('[data-drop-zone]'));
+    const compareButton = document.getElementById('compareButton');
+    const resultBanner = document.getElementById('resultBanner');
+    const resultMark = document.getElementById('resultMark');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultDescription = document.getElementById('resultDescription');
+    const files = [null, null];
+    const fileHashes = [null, null];
+    const processTokens = [0, 0];
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      const value = bytes / (1024 ** unitIndex);
+      return `${value.toLocaleString('vi-VN', { maximumFractionDigits: unitIndex ? 2 : 0 })} ${units[unitIndex]}`;
+    }
+
+    function bufferToHex(buffer) {
+      return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function setHashState(index, text) {
+      document.querySelectorAll(`[data-hash-state="${index}"]`).forEach(element => { element.textContent = text; });
+    }
+
+    function resetResult(title = 'Đang chờ hai file', description = 'Chọn đủ hai file để bắt đầu so sánh tự động.') {
+      resultBanner.className = 'result-banner';
+      resultMark.textContent = '?';
+      resultTitle.textContent = title;
+      resultDescription.textContent = description;
+    }
+
+    function renderComparison() {
+      compareButton.disabled = !fileHashes[0] || !fileHashes[1];
+      if (!files[0] || !files[1]) { resetResult(); return; }
+      if (!fileHashes[0] || !fileHashes[1]) { resetResult('Đang tạo hash...', 'Kết quả sẽ xuất hiện khi cả hai file được xử lý xong.'); return; }
+
+      const sameSize = files[0].size === files[1].size;
+      const sameSha256 = fileHashes[0].sha256 === fileHashes[1].sha256;
+      const sameSha512 = fileHashes[0].sha512 === fileHashes[1].sha512;
+      const isSame = sameSize && sameSha256 && sameSha512;
+      resultBanner.className = `result-banner ${isSame ? 'is-same' : 'is-different'}`;
+      resultMark.textContent = isSame ? '=' : '≠';
+      resultTitle.textContent = isSame ? 'Hai file giống nhau' : 'Hai file khác nhau';
+      resultDescription.textContent = isSame
+        ? 'Kích thước, SHA-256 và SHA-512 đều trùng khớp.'
+        : [!sameSize && 'Kích thước', !sameSha256 && 'SHA-256', !sameSha512 && 'SHA-512'].filter(Boolean).join(', ') + ' không trùng khớp.';
+    }
+
+    async function processFile(index, file) {
+      if (!file) return;
+      const token = ++processTokens[index];
+      files[index] = file;
+      fileHashes[index] = null;
+      document.querySelector(`[data-file-name="${index}"]`).textContent = file.name;
+      document.querySelector(`[data-file-size="${index}"]`).textContent = formatBytes(file.size);
+      document.querySelector(`[data-hash="${index}-sha256"]`).textContent = 'Đang tính...';
+      document.querySelector(`[data-hash="${index}-sha512"]`).textContent = 'Đang tính...';
+      setHashState(index, 'Đang xử lý');
+      renderComparison();
+
+      try {
+        if (!window.crypto?.subtle) throw new Error('Trình duyệt không hỗ trợ Web Crypto API.');
+        const content = await file.arrayBuffer();
+        const [sha256, sha512] = await Promise.all([
+          crypto.subtle.digest('SHA-256', content),
+          crypto.subtle.digest('SHA-512', content)
+        ]);
+        if (token !== processTokens[index]) return;
+        fileHashes[index] = { sha256: bufferToHex(sha256), sha512: bufferToHex(sha512) };
+        document.querySelector(`[data-hash="${index}-sha256"]`).textContent = fileHashes[index].sha256;
+        document.querySelector(`[data-hash="${index}-sha512"]`).textContent = fileHashes[index].sha512;
+        setHashState(index, 'Hoàn tất');
+      } catch (error) {
+        if (token !== processTokens[index]) return;
+        document.querySelector(`[data-hash="${index}-sha256"]`).textContent = 'Không thể tạo hash';
+        document.querySelector(`[data-hash="${index}-sha512"]`).textContent = 'Không thể tạo hash';
+        setHashState(index, 'Có lỗi');
+        resetResult('Không thể xử lý file', error.message || 'Đã xảy ra lỗi khi tạo hash.');
+        return;
+      }
+      renderComparison();
+    }
+
+    function clearAll() {
+      fileInputs.forEach(input => { input.value = ''; });
+      for (let index = 0; index < 2; index += 1) {
+        processTokens[index] += 1;
+        files[index] = null;
+        fileHashes[index] = null;
+        document.querySelector(`[data-file-name="${index}"]`).textContent = 'Chưa chọn';
+        document.querySelector(`[data-file-size="${index}"]`).textContent = '—';
+        document.querySelector(`[data-hash="${index}-sha256"]`).textContent = '—';
+        document.querySelector(`[data-hash="${index}-sha512"]`).textContent = '—';
+        setHashState(index, 'Chờ file');
+      }
+      compareButton.disabled = true;
+      resetResult();
+    }
+
+    dropZones.forEach((dropZone, index) => {
+      dropZone.addEventListener('click', () => fileInputs[index].click());
+      dropZone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInputs[index].click(); }
+      });
+      ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        dropZone.classList.add('is-dragging');
+      }));
+      ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        dropZone.classList.remove('is-dragging');
+      }));
+      dropZone.addEventListener('drop', event => processFile(index, event.dataTransfer.files[0]));
+      fileInputs[index].addEventListener('change', () => processFile(index, fileInputs[index].files[0]));
+    });
+
+    compareButton.addEventListener('click', renderComparison);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>

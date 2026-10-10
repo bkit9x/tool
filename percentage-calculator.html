@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .calculator-grid { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; }
+    .control-field { min-width: 0; }
+    .control-field select { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 13px 40px 13px 14px; outline: none; color: var(--text); background: var(--input); }
+    .control-field select:focus { border-color: var(--mint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 16%, transparent); }
+    .result-card { margin-top: 24px; padding: clamp(20px, 4vw, 32px); border: 1px solid var(--line); border-radius: 14px; background: var(--meta); text-align: center; }
+    .result-value { min-height: 1.1em; color: var(--mint); font-family: Georgia, serif; font-size: clamp(2.7rem, 9vw, 5.4rem); font-weight: bold; letter-spacing: -.055em; line-height: 1; }
+    .formula { min-height: 1.4em; margin: 12px 0 0; color: var(--muted); font-family: Consolas, monospace; font-size: .9rem; }
+    @media (max-width: 680px) { .calculator-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-tool-name="Percentage Calculator" data-tool-category="Chuyển đổi" data-tool-description="Tính biểu thức tỷ lệ với ngoặc và các toán tử cơ bản, sau đó chuyển thành phần trăm.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="calculator-grid">
+        <div class="control-field">
+          <label class="field-label" for="fractionInput">Biểu thức tỷ lệ</label>
+          <input id="fractionInput" type="text" inputmode="text" placeholder="Ví dụ: (1 + 2) / 19" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="control-field">
+          <label class="field-label" for="decimalPlaces">Số chữ số thập phân</label>
+          <select id="decimalPlaces">
+            <option value="0">0 chữ số</option>
+            <option value="1">1 chữ số</option>
+            <option value="2" selected>2 chữ số</option>
+            <option value="3">3 chữ số</option>
+            <option value="4">4 chữ số</option>
+            <option value="5">5 chữ số</option>
+            <option value="6">6 chữ số</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="status" class="status" role="status">Hỗ trợ dấu ngoặc và các toán tử <strong>+ − × ÷</strong>, ví dụ <strong>(1 + 2) / 19</strong>.</p>
+
+      <section class="result-card" aria-live="polite">
+        <div id="resultValue" class="result-value">—</div>
+      </section>
+
+      <div class="action-row">
+        <button id="copyButton" class="button" type="button" disabled>Sao chép kết quả</button>
+        <button id="clearButton" class="button button-secondary" type="button">Xóa</button>
+      </div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const fractionInput = document.getElementById('fractionInput');
+    const decimalPlaces = document.getElementById('decimalPlaces');
+    const resultValue = document.getElementById('resultValue');
+    const formula = document.getElementById('formula');
+    const status = document.getElementById('status');
+    const copyButton = document.getElementById('copyButton');
+
+    function formatNumber(value, digits) {
+      return new Intl.NumberFormat('vi-VN', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value);
+    }
+
+    // Phân tích biểu thức trực tiếp để không phải thực thi chuỗi bằng eval.
+    function evaluateExpression(value) {
+      const expression = value
+        .replace(/[×]/g, '*')
+        .replace(/[÷]/g, '/')
+        .replace(/[−–—_]/g, '-')
+        .replace(/,/g, '.');
+      let index = 0;
+
+      function skipSpaces() {
+        while (/\s/u.test(expression[index] || '')) index += 1;
+      }
+
+      function parsePrimary() {
+        skipSpaces();
+        if (expression[index] === '(') {
+          index += 1;
+          const result = parseAddition();
+          skipSpaces();
+          if (expression[index] !== ')') throw new Error('INVALID_EXPRESSION');
+          index += 1;
+          return result;
+        }
+
+        const numberMatch = expression.slice(index).match(/^(?:\d+(?:\.\d*)?|\.\d+)/u);
+        if (!numberMatch) throw new Error('INVALID_EXPRESSION');
+        index += numberMatch[0].length;
+        return Number(numberMatch[0]);
+      }
+
+      function parseUnary() {
+        skipSpaces();
+        if (expression[index] === '+') {
+          index += 1;
+          return parseUnary();
+        }
+        if (expression[index] === '-') {
+          index += 1;
+          return -parseUnary();
+        }
+        return parsePrimary();
+      }
+
+      function parseMultiplication() {
+        let result = parseUnary();
+        while (true) {
+          skipSpaces();
+          const operator = expression[index];
+          if (operator !== '*' && operator !== '/') break;
+          index += 1;
+          const operand = parseUnary();
+          if (operator === '/' && operand === 0) throw new Error('DIVIDE_BY_ZERO');
+          result = operator === '*' ? result * operand : result / operand;
+        }
+        return result;
+      }
+
+      function parseAddition() {
+        let result = parseMultiplication();
+        while (true) {
+          skipSpaces();
+          const operator = expression[index];
+          if (operator !== '+' && operator !== '-') break;
+          index += 1;
+          const operand = parseMultiplication();
+          result = operator === '+' ? result + operand : result - operand;
+        }
+        return result;
+      }
+
+      const result = parseAddition();
+      skipSpaces();
+      if (index !== expression.length || !Number.isFinite(result)) throw new Error('INVALID_EXPRESSION');
+      return result;
+    }
+
+    function calculatePercentage() {
+      const value = fractionInput.value.trim();
+      if (!value) {
+        resultValue.textContent = '—';
+        formula.textContent = '';
+        copyButton.disabled = true;
+        status.textContent = 'Hỗ trợ dấu ngoặc và các toán tử +, −, ×, ÷.';
+        return;
+      }
+
+      let ratio;
+      try {
+        ratio = evaluateExpression(value);
+      } catch (error) {
+        resultValue.textContent = error.message === 'DIVIDE_BY_ZERO' ? 'Không xác định' : 'Không hợp lệ';
+        formula.textContent = '';
+        copyButton.disabled = true;
+        status.textContent = error.message === 'DIVIDE_BY_ZERO' ? 'Không thể chia cho 0.' : 'Biểu thức không hợp lệ. Hãy kiểm tra toán tử và dấu ngoặc.';
+        return;
+      }
+
+      const digits = Number(decimalPlaces.value);
+      const percentage = ratio * 100;
+      const formattedPercentage = `${formatNumber(percentage, digits)}%`;
+      resultValue.textContent = formattedPercentage;
+      formula.textContent = `(${value}) × 100 = ${formattedPercentage}`;
+      copyButton.disabled = false;
+      status.textContent = 'Đã tính biểu thức và chuyển sang phần trăm.';
+    }
+
+    async function copyResult() {
+      if (copyButton.disabled) return;
+      try {
+        await navigator.clipboard.writeText(resultValue.textContent);
+        status.textContent = 'Đã sao chép kết quả.';
+      } catch {
+        status.textContent = 'Không thể tự động sao chép. Hãy chọn kết quả và sao chép thủ công.';
+      }
+    }
+
+    function clearAll() {
+      fractionInput.value = '';
+      calculatePercentage();
+      fractionInput.focus();
+    }
+
+    fractionInput.addEventListener('input', calculatePercentage);
+    decimalPlaces.addEventListener('change', calculatePercentage);
+    copyButton.addEventListener('click', copyResult);
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>

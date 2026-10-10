@@ -72,6 +72,15 @@
     "keywords": ["status", "group", "progress", "trạng thái", "đơn vị", "đã hoàn thành", "đang thực hiện"]
   },
   {
+    "id": "percentage-calculator",
+    "name": "Percentage Calculator",
+    "description": "Tính biểu thức tỷ lệ với ngoặc và các toán tử cơ bản, sau đó chuyển thành phần trăm.",
+    "path": "percentage-calculator.html",
+    "category": "Chuyển đổi",
+    "icon": "percent",
+    "keywords": ["percentage", "percent", "fraction", "ratio", "expression", "calculator", "phần trăm", "tỷ lệ", "phân số", "biểu thức"]
+  },
+  {
     "id": "encoder-decoder",
     "name": "Encode / Decode",
     "description": "Mã hóa và giải mã văn bản bằng Base64, URL, HTML, Hex, Unicode, JSON và ROT13.",
@@ -160,5 +169,23 @@
     "category": "Dữ liệu",
     "icon": "generate",
     "keywords": ["fake data", "sql", "insert", "checksum", "sha256", "file"]
+  },
+  {
+    "id": "number-notation-converter",
+    "name": "Chuyển đổi Số, La Mã, Chữ cái",
+    "description": "Chuyển đổi từng dòng giữa số thập phân, số La Mã và thứ tự chữ cái.",
+    "path": "number-notation-converter.html",
+    "category": "Chuyển đổi",
+    "icon": "number",
+    "keywords": ["number", "roman", "roman numeral", "alphabet", "decimal", "số la mã", "chữ cái"]
+  },
+  {
+    "id": "file-hash-compare",
+    "name": "So sánh Hash File",
+    "description": "Tạo SHA-256 và SHA-512 cho hai file để kiểm tra chúng giống hay khác nhau.",
+    "path": "file-hash-compare.html",
+    "category": "Bảo mật",
+    "icon": "diff",
+    "keywords": ["file", "hash", "compare", "checksum", "sha256", "sha512", "so sánh file", "trùng file"]
   }
 ]
