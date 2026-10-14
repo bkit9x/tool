@@ -36,6 +36,15 @@
     "keywords": ["image", "png", "bitmap", "reencode", "ảnh"]
   },
   {
+    "id": "image-to-base64",
+    "name": "Ảnh sang Base64",
+    "description": "Dán, kéo thả hoặc chọn ảnh để lấy chuỗi Base64 và Data URL.",
+    "path": "image-to-base64.html",
+    "category": "Hình ảnh",
+    "icon": "image",
+    "keywords": ["image", "base64", "data url", "clipboard", "paste", "dán ảnh"]
+  },
+  {
     "id": "regex-match-extractor",
     "name": "Regex Match Extractor",
     "description": "Lấy tất cả kết quả khớp regex và sao chép từng nhóm capture theo dòng.",

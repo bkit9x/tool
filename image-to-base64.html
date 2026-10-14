@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tool-shell.css">
+  <style>
+    .converter { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(0, 1.15fr); gap: 22px; }
+    .drop-zone { min-height: 235px; padding: 28px; cursor: pointer; }
+    .drop-zone strong { display: block; margin-bottom: 8px; color: var(--text); font-size: 1.08rem; }
+    .drop-zone small { display: block; line-height: 1.55; }
+    .paste-mark { display: grid; width: 58px; height: 58px; margin: 0 auto 16px; place-items: center; border: 1px solid var(--mint); border-radius: 15px; color: var(--mint); font-family: Consolas, monospace; font-weight: bold; }
+    .shortcut { display: inline-block; margin-top: 12px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--input); color: var(--mint); font-family: Consolas, monospace; font-size: .78rem; }
+    .preview-box { display: grid; min-height: 210px; max-height: 360px; margin-top: 18px; padding: 15px; place-items: center; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--preview); color: var(--muted); text-align: center; }
+    .preview-box img { display: none; max-width: 100%; max-height: 325px; border-radius: 7px; }
+    .result-tabs { display: flex; gap: 6px; margin-bottom: 12px; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: var(--input); }
+    .result-tab { flex: 1; padding: 8px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-weight: bold; }
+    .result-tab[aria-selected="true"] { background: var(--mint); color: var(--mint-ink); }
+    #output { min-height: 380px; word-break: break-all; }
+    .image-meta { margin-top: 14px; color: var(--muted); font-size: .82rem; line-height: 1.55; overflow-wrap: anywhere; }
+    @media (max-width: 800px) { .converter { grid-template-columns: 1fr; } #output { min-height: 250px; } }
+  </style>
+</head>
+<body data-tool-name="Ảnh sang Base64" data-tool-category="Hình ảnh" data-tool-description="Dán, kéo thả hoặc chọn ảnh để lấy chuỗi Base64 ngay trong trình duyệt.">
+  <main class="shell tool-page">
+    <section class="tool-intro" data-tool-intro></section>
+    <section class="tool-card">
+      <div class="converter">
+        <div>
+          <input id="fileInput" type="file" accept="image/*" hidden>
+          <div id="dropZone" class="drop-zone" role="button" tabindex="0">
+            <div><span class="paste-mark">IMG</span><strong>Dán ảnh vào đây</strong><small>Nhấn phím tắt, kéo thả hoặc bấm để chọn ảnh từ máy.</small><span class="shortcut">Ctrl/Cmd + V</span></div>
+          </div>
+          <div class="action-row"><button id="pasteButton" class="button" type="button">Dán từ clipboard</button><button id="chooseButton" class="button button-secondary" type="button">Chọn ảnh</button></div>
+          <div class="preview-box"><span id="emptyPreview">Ảnh được xử lý trên thiết bị, không tải lên máy chủ.</span><img id="preview" alt="Ảnh xem trước"></div>
+          <p id="imageMeta" class="image-meta">Chưa có ảnh.</p>
+        </div>
+        <div>
+          <div class="result-tabs" role="tablist"><button class="result-tab" type="button" data-mode="raw" aria-selected="true">Base64 thuần</button><button class="result-tab" type="button" data-mode="data-url" aria-selected="false">Data URL</button></div>
+          <label class="field-label" for="output">Kết quả</label>
+          <textarea id="output" readonly spellcheck="false" placeholder="Chuỗi Base64 sẽ xuất hiện tại đây..."></textarea>
+          <div class="action-row"><button id="copyButton" class="button" type="button" disabled>Sao chép Base64</button><button id="downloadButton" class="button button-secondary" type="button" disabled>Tải .txt</button><button id="clearButton" class="button button-secondary" type="button">Xóa</button></div>
+          <p id="status" class="status" role="status">Sẵn sàng nhận ảnh.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="tool-shell.js"></script>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const preview = document.getElementById('preview');
+    const emptyPreview = document.getElementById('emptyPreview');
+    const imageMeta = document.getElementById('imageMeta');
+    const output = document.getElementById('output');
+    const copyButton = document.getElementById('copyButton');
+    const downloadButton = document.getElementById('downloadButton');
+    const status = document.getElementById('status');
+    let dataUrl = '';
+    let rawBase64 = '';
+    let outputMode = 'raw';
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / (1024 ** unit)).toFixed(unit ? 2 : 0)} ${units[unit]}`;
+    }
+
+    function renderOutput() {
+      output.value = outputMode === 'data-url' ? dataUrl : rawBase64;
+      copyButton.textContent = outputMode === 'data-url' ? 'Sao chép Data URL' : 'Sao chép Base64';
+    }
+
+    function readImage(file, sourceName) {
+      if (!file || !file.type.startsWith('image/')) {
+        status.textContent = 'Vui lòng chọn hoặc dán một tệp ảnh hợp lệ.';
+        return;
+      }
+      status.textContent = 'Đang đọc ảnh...';
+      const reader = new FileReader();
+      reader.onload = () => {
+        dataUrl = String(reader.result);
+        rawBase64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+        renderOutput();
+        preview.onload = () => {
+          imageMeta.textContent = `${sourceName || file.name || 'Ảnh từ clipboard'} · ${file.type} · ${preview.naturalWidth} × ${preview.naturalHeight}px · ${formatBytes(file.size)}`;
+        };
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+        emptyPreview.style.display = 'none';
+        copyButton.disabled = false;
+        downloadButton.disabled = false;
+        status.textContent = `Đã tạo ${rawBase64.length.toLocaleString('vi-VN')} ký tự Base64.`;
+      };
+      reader.onerror = () => { status.textContent = 'Không thể đọc ảnh này.'; };
+      reader.readAsDataURL(file);
+    }
+
+    async function pasteFromClipboard() {
+      if (!navigator.clipboard?.read) {
+        status.textContent = 'Trình duyệt không hỗ trợ nút dán. Hãy nhấn Ctrl/Cmd + V.';
+        return;
+      }
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imageType = item.types.find(type => type.startsWith('image/'));
+          if (imageType) {
+            readImage(await item.getType(imageType), 'Ảnh từ clipboard');
+            return;
+          }
+        }
+        status.textContent = 'Clipboard hiện không chứa ảnh.';
+      } catch {
+        status.textContent = 'Không thể đọc clipboard. Hãy cấp quyền hoặc nhấn Ctrl/Cmd + V.';
+      }
+    }
+
+    async function copyResult() {
+      if (!output.value) return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        status.textContent = 'Đã sao chép kết quả vào clipboard.';
+      } catch {
+        output.focus();
+        output.select();
+        status.textContent = 'Đã chọn kết quả. Nhấn Ctrl/Cmd + C để sao chép.';
+      }
+    }
+
+    function clearAll() {
+      dataUrl = '';
+      rawBase64 = '';
+      output.value = '';
+      preview.removeAttribute('src');
+      preview.style.display = 'none';
+      emptyPreview.style.display = '';
+      fileInput.value = '';
+      imageMeta.textContent = 'Chưa có ảnh.';
+      copyButton.disabled = true;
+      downloadButton.disabled = true;
+      status.textContent = 'Đã xóa dữ liệu. Sẵn sàng nhận ảnh mới.';
+    }
+
+    document.querySelectorAll('[data-mode]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-selected', 'false'));
+        tab.setAttribute('aria-selected', 'true');
+        outputMode = tab.dataset.mode;
+        renderOutput();
+      });
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    document.getElementById('chooseButton').addEventListener('click', () => fileInput.click());
+    document.getElementById('pasteButton').addEventListener('click', pasteFromClipboard);
+    dropZone.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+    fileInput.addEventListener('change', () => readImage(fileInput.files[0], fileInput.files[0]?.name));
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => {
+      event.preventDefault();
+      dropZone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => {
+      event.preventDefault();
+      dropZone.classList.remove('is-dragging');
+    }));
+    dropZone.addEventListener('drop', event => readImage(event.dataTransfer.files[0], event.dataTransfer.files[0]?.name));
+    document.addEventListener('paste', event => {
+      const item = [...(event.clipboardData?.items || [])].find(entry => entry.type.startsWith('image/'));
+      if (!item) return;
+      event.preventDefault();
+      readImage(item.getAsFile(), 'Ảnh từ clipboard');
+    });
+    copyButton.addEventListener('click', copyResult);
+    downloadButton.addEventListener('click', () => {
+      if (!output.value) return;
+      const url = URL.createObjectURL(new Blob([output.value], { type: 'text/plain;charset=utf-8' }));
+      const link = Object.assign(document.createElement('a'), { href: url, download: outputMode === 'data-url' ? 'image-data-url.txt' : 'image-base64.txt' });
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status.textContent = 'Đã tải kết quả dạng file .txt.';
+    });
+    document.getElementById('clearButton').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>
